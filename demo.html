@@ -5,23 +5,40 @@
     <title>Conversion Formula</title>
     <style type="text/css" media="screen">
         table { border-collapse: collapse; border: 1px solid #777; }
-        td, th { border: 1px solid #777; padding: 0 1em; width: 10em; }
+        td, th { border: 1px solid #777; padding: 0 1em; width: 10em; padding: 4px; min-height: 1.5em;}
         thead th { background-color: #bbb; }
         tbody tr:nth-child(odd) { background-color: #ddd; }
         .input { padding: 6px; border-radius: 6px; border: 1px solid #ccc; display: inline-block; margin-right: 1em;}
-        /*tr td:nth-child(3) { text-align: right; }*/
+        .conversion span {
+            display: inline-block;
+            background: #afd1f4;
+            padding: 2px;
+            border: 1px solid #8ca8c4;
+            border-radius: 6px;
+            margin-left: 4px;
+        }
+        sup {
+            vertical-align: middle;
+            margin-bottom: 6px;
+            display: inline-block;
+            font-size: .75em;
+        }
     </style>
 </head>
 <body>
     <p>
-        Convert: <input id="converter" class="input" value="50"><span class="conversion"></span>
+        Convert: <input id="converter" class="input" value="50f"><span class="conversion"></span>
     </p>
     <div class="conversions"></div>
     <script src="nlconvert.js"></script>
     <script>
-        var show_conversion_table = function(formulas) {
+        var fix_caret = (function() {
             var caret_re = /\^(\d)/;
-            var markup = function(text) { return text.replace(caret_re, '<sup>$1</sup>'); };
+            return function(text) {
+                return text.replace(caret_re, '<sup>$1</sup>');
+            }
+        }());
+        var show_conversion_table = function(formulas) {
             var html = '<table><thead><tr><th>From</th><th>To</th><th>Multiply by</th></tr></thead><tbody>$1</tbody></table>';
             var strip_zeros_re = /[.]0+$/;
             var rows;
@@ -37,15 +54,25 @@
                     val = val.substring(val.indexOf('{') + 1, val.indexOf('}'));
                     val = val.replace('return ', '').replace(';', '');
                 }
-                return '<tr><td>' + markup(row[0]) + '</td><td>' + markup(row[1]) + '</td><td>' + val + '</td></tr>';
+                return '<tr><td>' + fix_caret(row[0]) + '</td><td>' + fix_caret(row[1]) + '</td><td>' + val + '</td></tr>';
             }).join('\n');
             document.querySelector('.conversions').innerHTML = html.replace('$1', rows);
         }
-        show_conversion_table(Converter.formulas);
-    </script>
-    <script>
+        show_conversion_table(Convert.formulas);
+        
         var el = document.getElementById('converter');
-        el.addEventListener('input', Converter.input_handler, false);
+        var handler = function(res) {
+            if(res && res.length) {
+                this.nextSibling.innerHTML = res.reduce(function(prev, curr) {
+                    return prev + '<span>' + fix_caret(curr) + '</span>';
+                }, '');
+                console.table(res);
+            }
+            else {
+                this.nextSibling.innerHTML = 'Unknown conversion';
+            }
+        };
+        Convert.register_input_handler(el, handler);
         el.dispatchEvent(new Event('input'));
         el.focus();
     </script>
