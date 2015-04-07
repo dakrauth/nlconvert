@@ -103,108 +103,99 @@ var Convert = (function() {
     };
     var unit_id = 0;
     var Unit = function(single, plural, abbr) {
-        this.id = unit_id++;
+        this.id = 'u' + unit_id++;
         this.abbr = abbr;
         this.single = single;
         this.plural = plural;
         this.conversions = [];
-    }
-    Unit.prototype.render = function(value) {
-        if(is_number(value)) {
-            var parsed = parseInt(value);
-            if(value === parsed) {
-                return value + ' ' + (parsed === 1 ? this.single : this.plural);
+    };
+    Unit.prototype = {
+        render: function(value) {
+            if(is_number(value)) {
+                var parsed = parseInt(value);
+                if(value === parsed) {
+                    return value + ' ' + (parsed === 1 ? this.single : this.plural);
+                }
+                var fmt = value.toFixed(4).toString().replace(/([.]\d+?)(0+)$/, '$1 ');
+                return fmt + ' ' + (value === 1 ? this.single : this.plural);
             }
-            var fmt = value.toFixed(4).toString().replace(/([.]\d+?)(0+)$/, '$1 ');
-            return fmt + ' ' + (value === 1 ? this.single : this.plural);
+            return value;
+        },
+        add_converter: function(converter) {
+            this.conversions.push(converter);
+        },
+        convert_all: function(value) {
+            return this.conversions.map(function(converter) {
+                return converter.render(value);
+            });
         }
-        return value;
     };
-    Unit.prototype.add_converter = function(converter) {
-        this.conversions.push(converter);
-    };
-    Unit.prototype.convert_all = function(value) {
-        return this.conversions.map(function(converter) {
-            return converter.render(value);
-        });
-    }
     
-    var Converter = function(to_unit, func) {
-        this.func = func;
+    var multiplier = function(value) { return function(input) { return input * value; } };
+    var Converter = function(to_unit, value) {
+        this.value = value
+        this.func = is_number(value) ? multiplier(value) : value;
         this.to_unit = to_unit;
     };
-    Converter.prototype.render = function(value) {
-        return this.to_unit.render(this.func(value));
+    Converter.prototype = {
+        render: function(value) {
+            return this.to_unit.render(this.func(value));
+        }
     };
     
-    var UOM = (function(items) {
-        var multiplier = function(value) { return function(input) { return input * value; } };
-        var units = {
-            units: {},
-            add_converter: function(to_unit, from_unit, num) {
-                if(this.has(from_unit) && this.has(to_unit)) {
-                    if(is_number(num)) {
-                        this.units[to_unit].add_converter(
-                            new Converter(this.units[from_unit], multiplier(1 / num))
-                        );
-                        num = multiplier(num);
-                    }
-                    this.units[from_unit].add_converter(new Converter(this.units[to_unit], num));
-                    return true;
+    var UnitsOfMeasure = function(config) {
+        this.initialize(config);
+    };
+    UnitsOfMeasure.prototype = {
+        initialize: function(config) {
+            this.units = {};
+            config.forEach(function(u) { this.add.apply(this, u); }, this);
+        },
+        add_converter: function(to_unit, from_unit, num) {
+            if(this.has(from_unit) && this.has(to_unit)) {
+                if(is_number(num)) {
+                    this.units[to_unit].add_converter(
+                        new Converter(this.units[from_unit], 1 / num)
+                    );
                 }
-                return false;
-            },
-            has: function(key) {
-                return this.units.hasOwnProperty(key);
-            },
-            get: function(key) {
-                return this.has(key) ? this.units[key] : null;
-            },
-            convert: function(value, key) {
-                var unit = this.get(key);
-                return unit ? unit.convert_all(value) : '';
-            },
-            _set: function(key, unit) {
-                if(this.has(key)) {
-                    console.warn('Unit key already exists: ', key);
-                }
-                this.units[key] = unit;
-            },
-            add: function(name, plural_fmt, abbr) {
-                var plural = pluralize(name, plural_fmt || name);
-                var abbrs = abbr ? abbr.split(',') : [''];
-                var unit = new Unit(name, plural, abbrs)
-                this._set(name, unit);
-                if(abbrs[0]) {
-                    abbrs.forEach(function(a) {
-                        this._set(a.trim(), unit);
-                    }, this);
-                }
-                if(name !== plural) {
-                    this._set(plural, unit);
-                }
+                this.units[from_unit].add_converter(new Converter(this.units[to_unit], num));
+                return true;
             }
-        };
-        items.forEach(function(u) { units.add.apply(units, u) });
-        return units;
-    }(unit_config));
+            return false;
+        },
+        has: function(key) {
+            return this.units.hasOwnProperty(key);
+        },
+        get: function(key) {
+            return this.has(key) ? this.units[key] : null;
+        },
+        convert: function(value, key) {
+            var unit = this.get(key);
+            return unit ? unit.convert_all(value) : '';
+        },
+        _set: function(key, unit) {
+            if(this.has(key)) {
+                console.warn('Unit key already exists: ', key);
+            }
+            this.units[key] = unit;
+        },
+        add: function(name, plural_fmt, abbr) {
+            var plural = pluralize(name, plural_fmt || name);
+            var abbrs = abbr ? abbr.split(',') : [''];
+            var unit = new Unit(name, plural, abbrs)
+            this._set(name, unit);
+            if(abbrs[0]) {
+                abbrs.forEach(function(a) {
+                    this._set(a.trim(), unit);
+                }, this);
+            }
+            if(name !== plural) {
+                this._set(plural, unit);
+            }
+        }
+    };
     
-    var formulas = (function(items) {
-        var keepers = [];
-        items.forEach(function(e) {
-            var from_unit = e[0];
-            var to_unit = e[1];
-            var val = e[2];
-            if(UOM.add_converter(to_unit, from_unit, val)) {
-                keepers.push([from_unit, to_unit, val]);
-                if(is_number(val)) {
-                    items.push([to_unit, from_unit, 1 / val]);
-                }
-            };
-        });
-        return keepers;
-    }(formula_config));
-    
+    var UOM = new UnitsOfMeasure(unit_config);
     var parse_expression = (function() {
         var float_re = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/;
         return function(text) {
@@ -217,15 +208,19 @@ var Convert = (function() {
         };
     }());
     
+    formula_config.forEach(function(e) { UOM.add_converter.apply(UOM, e); });
     return {
-        register_input_handler: function(el, handler) {
+        register_input_handler: function(el, handler, uom) {
             el.addEventListener('input', function(e) {
                 var ex = parse_expression(e.target.value);
-                var res = (ex && ex.key) ? UOM.convert(ex.value, ex.key) : null;
+                var res = null;
+                if(ex && ex.key) {
+                    uom = uom || UOM;
+                    res = uom.convert(ex.value, ex.key);
+                };
                 handler.call(this, res);
             }, false);
         },
-        UOM: UOM,
-        formulas: formulas
+        UOM: UOM
     }
 }());

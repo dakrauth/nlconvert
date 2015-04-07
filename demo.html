@@ -30,36 +30,49 @@
         Convert: <input id="converter" class="input" value="50f"><span class="conversion"></span>
     </p>
     <div class="conversions"></div>
+    <div class="help"></div>
     <script src="nlconvert.js"></script>
     <script>
         var fix_caret = (function() {
             var caret_re = /\^(\d)/;
             return function(text) {
-                return text.replace(caret_re, '<sup>$1</sup>');
+                return text.replace(caret_re, '&sup$1;');
             }
         }());
-        var show_conversion_table = function(formulas) {
-            var html = '<table><thead><tr><th>From</th><th>To</th><th>Multiply by</th></tr></thead><tbody>$1</tbody></table>';
-            var strip_zeros_re = /[.]0+$/;
-            var rows;
-            formulas.sort();
-            rows = formulas.map(function(row) {
-                var val = row[2];
+        (function(units) {
+            var html = '<table><thead><tr><th>From</th><th>Shortcuts</th><th>To</th><th>Multiply by</th></tr></thead><tbody>';
+            var seen = {};
+            var unit_a;
+            var value_repr = function(val) {
                 if(typeof val === 'number') {
                     val = (val < 0.0001) ? val.toFixed(6) : val.toFixed(val >= 1 ? 3 : 4);
-                    val  = val.replace(strip_zeros_re, '');
+                    return val.replace(/[.]0+$/, '');
                 }
-                else {
-                    val = val.toString();
-                    val = val.substring(val.indexOf('{') + 1, val.indexOf('}'));
-                    val = val.replace('return ', '').replace(';', '');
+                val = val.toString();
+                val = val.substring(val.indexOf('{') + 1, val.indexOf('}'));
+                return val.replace('return ', '').replace(';', '');
+            };
+            for(var key in units) {
+                if(units.hasOwnProperty(key)) {
+                    unit_a = units[key];
+                    if(!seen.hasOwnProperty(unit_a.id)) {
+                        seen[unit_a.id] = true;
+                        unit_a.conversions.forEach(function(conv) {
+                            html += (
+                                   '<tr>'
+                                 + '<td>' + fix_caret(unit_a.single) + '</td>'
+                                 + '<td>' + unit_a.abbr + '</td>'
+                                 + '<td>' + fix_caret(conv.to_unit.single) + '</td>'
+                                 + '<td>' + value_repr(conv.value) + '</td>'
+                                 + '</tr>'
+                            );
+                        });
+                    }
                 }
-                return '<tr><td>' + fix_caret(row[0]) + '</td><td>' + fix_caret(row[1]) + '</td><td>' + val + '</td></tr>';
-            }).join('\n');
-            document.querySelector('.conversions').innerHTML = html.replace('$1', rows);
-        }
-        show_conversion_table(Convert.formulas);
-        
+            }
+            document.querySelector('.help').innerHTML = html + '</tbody></table>';
+        }(Convert.UOM.units));
+
         var el = document.getElementById('converter');
         var handler = function(res) {
             if(res && res.length) {
