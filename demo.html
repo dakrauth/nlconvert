@@ -41,16 +41,9 @@
     <div id="help" style="display: none"></div>
     <script src="nlconvert.js"></script>
     <script>
-        var fix_caret = (function() {
-            var caret_re = /\^(\d)/;
-            return function(text) {
-                return text.replace(caret_re, '&sup$1;');
-            }
-        }());
         (function(units) {
             var html = '<table><thead><tr><th>From</th><th>Shortcuts</th><th>To</th><th>Multiply by</th></tr></thead><tbody>';
             var seen = {};
-            var unit_a;
             var value_repr = function(val) {
                 if(typeof val === 'number') {
                     val = (val < 0.0001) ? val.toFixed(6) : val.toFixed(val >= 1 ? 3 : 4);
@@ -60,34 +53,32 @@
                 val = val.substring(val.indexOf('{') + 1, val.indexOf('}'));
                 return val.replace('return ', '').replace(';', '');
             };
-            for(var key in units) {
-                if(units.hasOwnProperty(key)) {
-                    unit_a = units[key];
-                    if(!seen.hasOwnProperty(unit_a.id)) {
-                        seen[unit_a.id] = true;
-                        unit_a.conversions.forEach(function(conv) {
-                            html += (
-                                   '<tr>'
-                                 + '<td>' + fix_caret(unit_a.single) + '</td>'
-                                 + '<td>' + unit_a.abbr + '</td>'
-                                 + '<td>' + fix_caret(conv.to_unit.single) + '</td>'
-                                 + '<td>' + value_repr(conv.value) + '</td>'
-                                 + '</tr>'
-                            );
-                        });
-                    }
+            Object.getOwnPropertyNames(units).forEach(function(key) {
+                var unit_a = units[key];
+                if(!seen.hasOwnProperty(unit_a.id)) {
+                    seen[unit_a.id] = true;
+                    unit_a.conversions.forEach(function(conv) {
+                        html += (
+                               '<tr>'
+                             + '<td>' + Convert.swap_caret(unit_a.single) + '</td>'
+                             + '<td>' + unit_a.abbr + '</td>'
+                             + '<td>' + Convert.swap_caret(conv.to_unit.single) + '</td>'
+                             + '<td>' + value_repr(conv.value) + '</td>'
+                             + '</tr>'
+                        );
+                    });
                 }
-            }
+            });
             document.getElementById('help').innerHTML = html + '</tbody></table>';
         }(Convert.UOM.units));
 
         var el = document.getElementById('converter');
-        var handler = function(res) {
-            if(res && res.length) {
-                this.nextSibling.innerHTML = res.reduce(function(prev, curr) {
-                    return prev + '<span>' + fix_caret(curr) + '</span>';
+        var handler = function(result) {
+            console.table(result.values);
+            if(result && result.values.length) {
+                this.nextSibling.innerHTML += result.values.reduce(function(prev, curr) {
+                    return prev + '<span>' + Convert.swap_caret(curr) + '</span>';
                 }, '');
-                console.table(res);
             }
             else {
                 this.nextSibling.innerHTML = 'Unknown conversion';
@@ -95,10 +86,10 @@
         };
         var help = document.querySelector('a.help');
         help.addEventListener('click', function() {
-            console.log('down');
             var el = document.getElementById('help');
             el.style.display = (el.style.display === 'none') ? 'block' : 'none';
         }, false);
+        
         Convert.register_input_handler(el, handler);
         el.dispatchEvent(new Event('input'));
         el.focus();

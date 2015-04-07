@@ -171,7 +171,12 @@ var Convert = (function() {
         },
         convert: function(value, key) {
             var unit = this.get(key);
-            return unit ? unit.convert_all(value) : '';
+            var result = null;
+            if(!unit) {
+                return result;
+            }
+            result = unit.convert_all(value);
+            return {values: result, unit: unit};
         },
         _set: function(key, unit) {
             if(this.has(key)) {
@@ -220,6 +225,9 @@ var Convert = (function() {
                 };
                 handler.call(this, res);
             }, false);
+        },
+        swap_caret: function(text) {
+            return text.replace(/\^(\d)/, '&sup$1;');
         },
         UOM: UOM
     }
