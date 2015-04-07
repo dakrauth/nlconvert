@@ -4,33 +4,41 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Conversion Formula</title>
     <style type="text/css" media="screen">
-        table { border-collapse: collapse; border: 1px solid #777; }
-        td, th { border: 1px solid #777; padding: 0 1em; width: 10em; padding: 4px; min-height: 1.5em;}
-        thead th { background-color: #bbb; }
-        tbody tr:nth-child(odd) { background-color: #ddd; }
+        body { font-family: Verdana, Helvetica, Arial, sans-serif; font-size: 13px; }
+        table { border-collapse: collapse; border: 1px solid #ccc; font-size: 0.8; }
+        th { text-align: left; }
+        td, th { padding: 0 1em; min-width: 10em; padding: 4px; min-height: 1.5em;}
+        thead th { background-color: #ccc; }
+        tbody tr:nth-child(odd) { background-color: #eee; }
         .input { padding: 6px; border-radius: 6px; border: 1px solid #ccc; display: inline-block; margin-right: 1em;}
         .conversion span {
             display: inline-block;
-            background: #afd1f4;
-            padding: 2px;
-            border: 1px solid #8ca8c4;
-            border-radius: 6px;
-            margin-left: 4px;
-        }
-        sup {
-            vertical-align: middle;
-            margin-bottom: 6px;
-            display: inline-block;
-            font-size: .75em;
-        }
+              background: #afd1f4;
+              padding: 2px 6px;
+              border: 1px solid #8ca8c4;
+              border-radius: 12px;
+              margin-left: 4px;
+              box-shadow: 1px 1px 4px rgba(0,0,0,0.25);
+          }
+          a.help {
+              display: inline-block;
+              font-size: 15px;
+              text-align: center;
+              border: 1px solid #035fda;
+              background: #035fda;
+              color: #fff;
+              border-radius: 10px;
+              width: 20px;
+              height: 20px;
+          }
     </style>
 </head>
 <body>
     <p>
-        Convert: <input id="converter" class="input" value="50f"><span class="conversion"></span>
+        <a class="help">?</a> Convert: <input id="converter" class="input" value="50f"><span class="conversion"></span>
     </p>
     <div class="conversions"></div>
-    <div class="help"></div>
+    <div id="help" style="display: none"></div>
     <script src="nlconvert.js"></script>
     <script>
         var fix_caret = (function() {
@@ -70,7 +78,7 @@
                     }
                 }
             }
-            document.querySelector('.help').innerHTML = html + '</tbody></table>';
+            document.getElementById('help').innerHTML = html + '</tbody></table>';
         }(Convert.UOM.units));
 
         var el = document.getElementById('converter');
@@ -85,6 +93,12 @@
                 this.nextSibling.innerHTML = 'Unknown conversion';
             }
         };
+        var help = document.querySelector('a.help');
+        help.addEventListener('click', function() {
+            console.log('down');
+            var el = document.getElementById('help');
+            el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+        }, false);
         Convert.register_input_handler(el, handler);
         el.dispatchEvent(new Event('input'));
         el.focus();
