@@ -6,5 +6,5 @@
   ],
   "license": "MIT",
   "dependencies": {},
-  "ignore": ['demo.html', 'README.md']
+  "ignore": ["demo.html", "README.md"]
 }
