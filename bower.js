@@ -1,0 +1,10 @@
+{
+  "name": "nlconvert",
+  "version": "0.1-dev",
+  "main": [
+    "nlconvert.js",
+  ],
+  "license": "MIT",
+  "dependencies": {},
+  "ignore": ['demo.html', 'README.md']
+}
