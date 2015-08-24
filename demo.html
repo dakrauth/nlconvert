@@ -74,14 +74,14 @@
 
         var el = document.getElementById('converter');
         var handler = function(result) {
-            console.table(result.values);
             if(result && result.values.length) {
-                this.nextSibling.innerHTML += result.values.reduce(function(prev, curr) {
+                console.table(result.values);
+                this.nextSibling.innerHTML = result.values.reduce(function(prev, curr) {
                     return prev + '<span>' + Convert.swap_caret(curr) + '</span>';
                 }, '');
             }
             else {
-                this.nextSibling.innerHTML = 'Unknown conversion';
+                this.nextSibling.innerHTML = '';
             }
         };
         var help = document.querySelector('a.help');

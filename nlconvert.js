@@ -39,8 +39,8 @@ var Convert = (function() {
         , ['mile^2',       'acre',         640]
         , ['pint',         'fluid ounce',  16]
         , ['quart',        'liter',        0.9463]
-        , ['stone',        'pound',        14]
-        , ['stone',        'kilogram',     6.35]
+        , ['stone',        'pound',        1 / 14]
+        , ['stone',        'kilogram',     1 / 6.35]
         , ['yard^2',       'foot^2',       9]
     ];
     var unit_config = [
