@@ -1,11 +1,22 @@
 var Convert = (function() {
-    var formula_config = [
-          ['acre',         'hectare',      0.4047]
+    var Formula = function(from_unit, to_unit, conversion) {
+        this.from_unit = from_unit;
+        this.to_unit = to_unit;
+        this.conversion = conversion;
+    };
+    Formula.make = function(fu, tu, c) {
+        return new Formula(fu, tu, c);
+    };
+    
+    var initial_formulas = (function(formulas) {
+        var objs = formulas.map(function(f) { return Formula.make.apply(null, f); });
+        return objs;
+    }([   ['acre',         'hectare',      0.4047]
         , ['acre',         'meter^2',      4046.86]
         , ['acre',         'yard^2',       4840]
         , ['atmosphere',   'pounds/in^2',  14.696]
-        , ['celsius',      'fahrenheit',   function(c) { return c * 9/5 + 32; }]
-        , ['fahrenheit',   'celsius',      function(f) { return (f  - 32) * 5/9; }]
+        , ['celsius',      'fahrenheit',   function(c) { console.log('c2f', c); return c * 9/5 + 32; }]
+        , ['fahrenheit',   'celsius',      function(f) { console.log('f2c', f); return (f  - 32) * 5/9; }]
         , ['barrel',       'meter^3',      0.159]
         , ['bushel',       'liter',        36.4]
         , ['centiliter',   'pint',         0.0211]
@@ -42,7 +53,8 @@ var Convert = (function() {
         , ['stone',        'pound',        1 / 14]
         , ['stone',        'kilogram',     1 / 6.35]
         , ['yard^2',       'foot^2',       9]
-    ];
+    ]));
+    
     var unit_config = [
         //  Name           Plural format   Abbreviations
           ['acre',         '+s',           null]
@@ -54,7 +66,7 @@ var Convert = (function() {
         , ['centimeter^2', '+s',           'cm2']
         , ['centimeter^3', '+s',           'cm3']
         , ['fahrenheit',   null,           'f']
-        , ['fluid ounce',  '+s',           'floz, fl oz']
+        , ['fluid ounce',  '+s',           'floz,fl oz']
         , ['foot',         'feet',         'ft']
         , ['foot^2',       'feet^2',       'ft2']
         , ['foot^3',       'feet^3',       'ft3']
@@ -143,22 +155,22 @@ var Convert = (function() {
         }
     };
     
-    var UnitsOfMeasure = function(config) {
-        this.initialize(config);
+    var UnitsOfMeasure = function(config, formulas) {
+        this.units = {};
+        config.forEach(function(u) { this.add.apply(this, u); }, this);
+        formulas.forEach(function(e) { this.add_formula(e); }, this);
     };
     UnitsOfMeasure.prototype = {
-        initialize: function(config) {
-            this.units = {};
-            config.forEach(function(u) { this.add.apply(this, u); }, this);
-        },
-        add_converter: function(to_unit, from_unit, num) {
-            if(this.has(from_unit) && this.has(to_unit)) {
-                if(is_number(num)) {
-                    this.units[to_unit].add_converter(
-                        new Converter(this.units[from_unit], 1 / num)
+        add_formula: function(formula) {
+            if(this.has(formula.from_unit) && this.has(formula.to_unit)) {
+                if(is_number(formula.conversion)) {
+                    this.units[formula.to_unit].add_converter(
+                        new Converter(this.units[formula.from_unit], 1 / formula.conversion)
                     );
                 }
-                this.units[from_unit].add_converter(new Converter(this.units[to_unit], num));
+                this.units[formula.from_unit].add_converter(
+                    new Converter(this.units[formula.to_unit], formula.conversion)
+                );
                 return true;
             }
             return false;
@@ -200,12 +212,17 @@ var Convert = (function() {
         }
     };
     
-    var UOM = new UnitsOfMeasure(unit_config);
+    var UOM = new UnitsOfMeasure(unit_config, initial_formulas);
     var parse_expression = (function() {
         var float_re = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/;
         return function(text) {
-            var value = float_re.exec(text);
-            var key = text.substr(value[0].length).trim().toLowerCase();
+            var key, value = float_re.exec(text);
+            if(value) {
+                key = text.substr(value[0].length).trim().toLowerCase();
+            }
+            else {
+                console.log('parse_expression fail:', text);
+            }
             return value ? {
                 'value': parseFloat(value[0]),
                 'key': (key && key.length) ? key : 'int'
@@ -213,7 +230,6 @@ var Convert = (function() {
         };
     }());
     
-    formula_config.forEach(function(e) { UOM.add_converter.apply(UOM, e); });
     return {
         register_input_handler: function(el, handler, uom) {
             el.addEventListener('input', function(e) {
@@ -226,6 +242,7 @@ var Convert = (function() {
                 handler.call(this, res);
             }, false);
         },
+        parse: parse_expression,
         swap_caret: function(text) {
             return text.replace(/\^(\d)/, '&sup$1;');
         },
