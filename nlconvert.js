@@ -7,7 +7,7 @@ var Convert = (function() {
     Formula.make = function(fu, tu, c) {
         return new Formula(fu, tu, c);
     };
-    
+
     var initial_formulas = (function(formulas) {
         var objs = formulas.map(function(f) { return Formula.make.apply(null, f); });
         return objs;
@@ -15,14 +15,16 @@ var Convert = (function() {
         , ['acre',         'meter^2',      4046.86]
         , ['acre',         'yard^2',       4840]
         , ['atmosphere',   'pounds/in^2',  14.696]
-        , ['celsius',      'fahrenheit',   function(c) { console.log('c2f', c); return c * 9/5 + 32; }]
-        , ['fahrenheit',   'celsius',      function(f) { console.log('f2c', f); return (f  - 32) * 5/9; }]
+        , ['celsius',      'fahrenheit',   function(c) { return c * 9/5 + 32; }]
+        , ['fahrenheit',   'celsius',      function(f) { return (f  - 32) * 5/9; }]
         , ['barrel',       'meter^3',      0.159]
         , ['bushel',       'liter',        36.4]
         , ['centiliter',   'pint',         0.0211]
         , ['centimeter',   'inch',         0.3937]
         , ['centimeter^2', 'inch^2',       0.155]
         , ['centimeter^3', 'inch^3',       0.06102]
+        , ['cup',          'milliliter',   240]
+        , ['cup',          'ounce',        8]
         , ['foot',         'meter',        0.3048]
         , ['foot^2',       'inch^2',       144]
         , ['foot^2',       'meter^2',      0.0929]
@@ -30,6 +32,7 @@ var Convert = (function() {
         , ['foot^3',       'meter^3',      0.02832]
         , ['fluid ounce',  'inch^3',       1.878]
         , ['fluid ounce',  'liter',        0.0296]
+        , ['fluid ounce',  'tablespoon',   2]
         , ['gallon',       'liter',        3.785]
         , ['gram',         'ounce',        0.03527]
         , ['hectare',      'mile^2',       3.8612]
@@ -38,6 +41,7 @@ var Convert = (function() {
         , ['inch^3',       'pint',         0.0347]
         , ['inch^3',       'centiliter',   1.639]
         , ['int',          'hex',          function(i) { return '0x' + i.toString(16); }]
+        , ['int',          'exp',          function(i) { return i.toExponential(); }]
         , ['kilogram',     'pound',        2.205]
         , ['kilometer',    'mile',         0.6214]
         , ['kilometer^2',  'mile^2',       0.3861]
@@ -50,8 +54,11 @@ var Convert = (function() {
         , ['mile^2',       'acre',         640]
         , ['pint',         'fluid ounce',  16]
         , ['quart',        'liter',        0.9463]
-        , ['stone',        'pound',        1 / 14]
-        , ['stone',        'kilogram',     1 / 6.35]
+        , ['stone',        'pound',        14]
+        , ['stone',        'kilogram',     6.35]
+        , ['tablespoon',   'milliliter',   15]
+        , ['tablespoon',   'teaspoon',     3]
+        , ['teaspoon',     'milliliter',   5]
         , ['yard^2',       'foot^2',       9]
     ]));
     
@@ -65,6 +72,8 @@ var Convert = (function() {
         , ['centimeter',   '+s',           'cm']
         , ['centimeter^2', '+s',           'cm2']
         , ['centimeter^3', '+s',           'cm3']
+        , ['cup',          '+s',           null]
+        , ['exp',          null,           null]
         , ['fahrenheit',   null,           'f']
         , ['fluid ounce',  '+s',           'floz,fl oz']
         , ['foot',         'feet',         'ft']
@@ -97,8 +106,10 @@ var Convert = (function() {
         , ['pint',         '+s',           'pt,pts']
         , ['pound',        '+s',           'lb,lbs']
         , ['quart',        '+s',           'qt,qts']
-        , ['yard',         '+s',           'yd,yds']
         , ['stone',        '+s',           'st']
+        , ['tablespoon',   '+s',           'tb,tbl,tbs']
+        , ['teaspoon',     '+s',           'tsp,tsps']
+        , ['yard',         '+s',           'yd,yds']
         , ['yard^2',       '+s',           'yd2,yds2']
         , ['yard^3',       '+s',           'yd3,yds3']
     ];
@@ -114,44 +125,54 @@ var Convert = (function() {
         return has_token ? single + fmt.substr(1) + suffix: fmt;
     };
     var unit_id = 0;
-    var Unit = function(single, plural, abbr) {
+    var Unit = function(single, plural, abbr, sig_digits) {
         this.id = 'u' + unit_id++;
         this.abbr = abbr;
         this.single = single;
         this.plural = plural;
         this.conversions = [];
+        this.sig_digits = sig_digits || 4;
     };
     Unit.prototype = {
-        render: function(value) {
+        formats: function(value) {
+            var label = value === 1 ? this.single : this.plural;
             if(is_number(value)) {
-                var parsed = parseInt(value);
-                if(value === parsed) {
-                    return value + ' ' + (parsed === 1 ? this.single : this.plural);
-                }
-                var fmt = value.toFixed(4).toString().replace(/([.]\d+?)(0+)$/, '$1 ');
-                return fmt + ' ' + (value === 1 ? this.single : this.plural);
+                value = value.toFixed(4).toString().replace(/([.]\d+?)(0+)$/, '$1 ');
             }
-            return value;
+            return [value, label];
         },
         add_converter: function(converter) {
             this.conversions.push(converter);
         },
         convert_all: function(value) {
             return this.conversions.map(function(converter) {
-                return converter.render(value);
+                return converter.convert(value);
             });
         }
     };
     
     var multiplier = function(value) { return function(input) { return input * value; } };
+    var Result = function(value, unit) {
+        this.value = value;
+        this.unit = unit;
+    };
+    Result.prototype = {
+        formats: function() {
+            return this.unit.formats(this.value);
+        },
+        toString: function() {
+            return this.formats().join(' ');
+        },
+    };
+    
     var Converter = function(to_unit, value) {
         this.value = value
         this.func = is_number(value) ? multiplier(value) : value;
         this.to_unit = to_unit;
     };
     Converter.prototype = {
-        render: function(value) {
-            return this.to_unit.render(this.func(value));
+        convert: function(value) {
+            return new Result(this.func(value), this.to_unit);
         }
     };
     
@@ -175,26 +196,26 @@ var Convert = (function() {
             }
             return false;
         },
-        has: function(key) {
-            return this.units.hasOwnProperty(key);
+        has: function(label) {
+            return this.units.hasOwnProperty(label);
         },
-        get: function(key) {
-            return this.has(key) ? this.units[key] : null;
+        get: function(label) {
+            return this.has(label) ? this.units[label] : null;
         },
-        convert: function(value, key) {
-            var unit = this.get(key);
-            var result = null;
+        convert: function(value, label) {
+            var unit = this.get(label);
+            var conversions = null;
             if(!unit) {
-                return result;
+                return conversions;
             }
-            result = unit.convert_all(value);
-            return {values: result, unit: unit};
+            conversions = unit.convert_all(value);
+            return {results: conversions, unit: unit};
         },
-        _set: function(key, unit) {
-            if(this.has(key)) {
-                console.warn('Unit key already exists: ', key);
+        _set: function(label, unit) {
+            if(this.has(label)) {
+                console.warn('Unit label already exists: ', label);
             }
-            this.units[key] = unit;
+            this.units[label] = unit;
         },
         add: function(name, plural_fmt, abbr) {
             var plural = pluralize(name, plural_fmt || name);
@@ -214,20 +235,57 @@ var Convert = (function() {
     
     var UOM = new UnitsOfMeasure(unit_config, initial_formulas);
     var parse_expression = (function() {
-        var float_re = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/;
-        return function(text) {
-            var key, value = float_re.exec(text);
-            if(value) {
-                key = text.substr(value[0].length).trim().toLowerCase();
+        var num_re = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/;
+        var frac_re = /^([-+])?(?:(\d+) +)?(\d+)\/([1-9]\d*)/;
+        var parse_fraction = function(m) {
+            var value = 0;
+            if(m[2]) {
+                value = parseInt(m[2]);
+            }
+            value += parseInt(m[3]) / parseInt(m[4]);
+            return m[1] === '-' ? -value : value;
+        };
+        
+        var parse = function(text) {
+            var label   = '',
+                value = false,
+                match = frac_re.exec(text);
+                
+            if(match) {
+                match = frac_re.exec(text);
+                if(match) {
+                    value = parse_fraction(match);
+                }
             }
             else {
-                console.log('parse_expression fail:', text);
+                match = num_re.exec(text);
+                if(match) {
+                    value = parseFloat(match[0])
+                }
+                else {
+                    console.log('parse_expression fail:', text);
+                }
             }
-            return value ? {
-                'value': parseFloat(value[0]),
-                'key': (key && key.length) ? key : 'int'
-            } : null;
+
+            if(match) {
+                label = text.substr(match[0].length).trim().toLowerCase() || 'int';
+            }
+            return value ? {value: value, label: label, text: text} : null;
         };
+        
+        if(true) {
+            console.table([
+                "1 gr",
+                "12 F",
+                "3 4/5 oz",
+                "45 56/67",
+                "1/2 m",
+                "23/4",
+                "-2/3",
+                "+2/3"
+            ].map(function(i) { return parse(i); }));
+        }
+        return parse;
     }());
     
     return {
@@ -235,15 +293,18 @@ var Convert = (function() {
             el.addEventListener('input', function(e) {
                 var ex = parse_expression(e.target.value);
                 var res = null;
-                if(ex && ex.key) {
+                if(ex && ex.label) {
                     uom = uom || UOM;
-                    res = uom.convert(ex.value, ex.key);
+                    res = uom.convert(ex.value, ex.label);
                 };
                 handler.call(this, res);
             }, false);
         },
         parse: parse_expression,
         swap_caret: function(text) {
+            if(text instanceof Result) {
+                text = text.toString();
+            }
             return text.replace(/\^(\d)/, '&sup$1;');
         },
         UOM: UOM
