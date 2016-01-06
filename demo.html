@@ -9,7 +9,7 @@
         th { text-align: left; }
         td, th { padding: 0 1em; min-width: 10em; padding: 4px; min-height: 1.5em;}
         thead th { background-color: #ccc; }
-        tbody tr:nth-child(odd) { background-color: #eee; }
+        tbody tr:nth-child(odd) { background-color: #cee; }
         .input { padding: 6px; border-radius: 6px; border: 1px solid #ccc; display: inline-block; margin-right: 1em;}
         #conversions ul {
             margin: 0;
@@ -139,7 +139,7 @@
                     child.appendChild(create_element('span', formats[0]));
                     child.appendChild(create_element(
                         'span',
-                        Convert.swap_caret(formats[1])
+                        ' ' + Convert.swap_caret(formats[1])
                     ));
                     child.addEventListener('click', function() {
                         var size = child.style.fontSize;
