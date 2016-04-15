@@ -3,157 +3,34 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Conversion Formula</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
     <style type="text/css" media="screen">
-        body { font-family: Verdana, Helvetica, Arial, sans-serif; font-size: 13px; color: #333; }
-        table { border-collapse: collapse; border: 1px solid #ccc; font-size: 0.8; }
-        th { text-align: left; }
-        td, th { padding: 0 1em; min-width: 10em; padding: 4px; min-height: 1.5em;}
-        thead th { background-color: #ccc; }
-        tbody tr:nth-child(odd) { background-color: #cee; }
-        .input { padding: 6px; border-radius: 6px; border: 1px solid #ccc; display: inline-block; margin-right: 1em;}
-        #conversions ul {
-            margin: 0;
-            list-style-type: none;
-            padding: 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        #conversions {
-            float: left;
-        }
-        #conversions li {
-            padding: 4px 6px;
-            border-bottom: 1px solid #ccc;
-            cursor: pointer;
-        }
-        #conversions li span:first-child {
-            display: inline-block;
-            width: 8em;
-            margin-right: 1em;
-            text-align: right;
-            font-family: monospace;
-        }
-        #conversions li:last-child {
-            border: none;
-        }
-        a.help {
-            display: inline-block;
-            font-size: 15px;
-            text-align: center;
-            border: 1px solid #035fda;
-            background: #035fda;
-            color: #fff;
-            border-radius: 10px;
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        #help {
-            float: left;
-            margin-right: 4px;
-            display: none;
-            transition: display 3s ease-in-out;
-        }
-        #help.show { display: block; }
-        #main {
-            margin-bottom: 1em;
-        }
-        .clearfix:before, .clearfix:after { content: " "; display: table; }
-        .clearfix:after { clear: both; }
+        .convert-wrapper form {margin-bottom: 1em;}
     </style>
 </head>
 <body>
-    <p>
-        <a class="help">?</a>
-        Convert: <input id="converter" class="input" value="50 lb">
-    </p>
-    
-    <div class="clearfix" id="main">
-        <div id="help">
-            <table>
-            <thead>
-                <tr><th>From</th><th>Shortcuts</th><th>To</th><th>Multiply by</th></tr>
-            </thead>
-            <tbody></tbody>
-            </table>
+<div class="container">
+    <h1>Conversion Demo</h1>
+    <div class="convert-wrapper" id="convert">
+        <form class="convert-form form-inline">
+            <label for="convert-input">Convert</label>
+            <input id="convert-input" class="form-control" type="text">
+            <a href="#" class="btn btn-info btn-xs convert-help-toggle">?</a>
+        </form>
+        <div class="row">
+            <div class="col-md-6" id="convert-results"></div>
+            <div class="col-md-6" id="convert-help" style="display:none;"></div>
         </div>
-        <div id="conversions"></div>
     </div>
     <script src="nlconvert.js"></script>
     <script>
-        var create_element = function(tag, text) {
-            var el = document.createElement(tag);
-            if(text) {
-                el.innerHTML = text;
-            }
-            return el;
-        };
-        (function(units) {
-            var container_el = document.getElementById('help');
-            var help_el = container_el.querySelector('tbody');
-            var seen = {};
-            var value_repr = function(val) {
-                if(typeof val === 'number') {
-                    val = (val < 0.0001) ? val.toFixed(6) : val.toFixed(val >= 1 ? 3 : 4);
-                    return val.replace(/[.]0+$/, '');
-                }
-                val = val.toString();
-                val = val.substring(val.indexOf('{') + 1, val.indexOf('}'));
-                return val.replace('return ', '').replace(';', '');
-            };
-            document.querySelector('a.help').addEventListener('click', function() {
-                var el = document.getElementById('help');
-                el.className = el.className === 'show'? '' : 'show';
-            }, false);
-            
-            Object.getOwnPropertyNames(units).forEach(function(key) {
-                var unit_a = units[key];
-                if(!seen.hasOwnProperty(unit_a.id)) {
-                    seen[unit_a.id] = true;
-                    unit_a.conversions.forEach(function(conv) {
-                        var tr_el = create_element('tr');
-                        help_el.appendChild(tr_el);
-                        tr_el.appendChild(create_element('td', Convert.swap_caret(unit_a.single)));
-                        tr_el.appendChild(create_element('td', unit_a.abbr));
-                        tr_el.appendChild(create_element('td', Convert.swap_caret(conv.to_unit.single)));
-                        tr_el.appendChild(create_element('td', value_repr(conv.value)));
-                    });
-                }
-            });
-        }(Convert.UOM.units));
+        var inputEl = document.getElementById('convert-input');
+        inputEl.value = "50 lb";
+        inputEl.focus();
+        Convert.initialize();
 
-        var input_el = document.getElementById('converter');
-        var handler = function(conversions) {
-            var parent_el = document.getElementById('conversions');
-            while(parent_el.lastChild) {
-                parent_el.removeChild(parent_el.lastChild);
-            }
-            console.log(conversions);
-            if(conversions && conversions.results.length) {
-                var ul_el = create_element('ul');
-                parent_el.appendChild(ul_el);
-                
-                conversions.results.forEach(function(result) {
-                    var formats = result.formats();
-                    var child = create_element('li');
-                    child.appendChild(create_element('span', formats[0]));
-                    child.appendChild(create_element(
-                        'span',
-                        ' ' + Convert.swap_caret(formats[1])
-                    ));
-                    child.addEventListener('click', function() {
-                        var size = child.style.fontSize;
-                        size = size ? parseInt(size) : 100;
-                        child.style.fontSize = (size * 1.5) + '%';
-                    }, false);
-                    ul_el.appendChild(child);
-                });
-            }
-        };
-        
-        Convert.register_input_handler(input_el, handler);
-        input_el.dispatchEvent(new Event('input'));
-        input_el.focus();
     </script>
+</div>
 </body>
 </html>
