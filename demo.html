@@ -2,34 +2,28 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Conversion Formula</title>
+    <title>Unit Conversions</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
-    <style type="text/css" media="screen">
-        .convert-wrapper form {margin-bottom: 1em;}
-    </style>
 </head>
 <body>
 <div class="container">
-    <h1>Conversion Demo</h1>
-    <div class="convert-wrapper" id="convert">
-        <form class="convert-form form-inline">
+    <h1>Unit Conversions</h1>
+    <form class="convert-form form-inline">
+        <p>
             <label for="convert-input">Convert</label>
             <input id="convert-input" class="form-control" type="text">
-            <a href="#" class="btn btn-info btn-xs convert-help-toggle">?</a>
-        </form>
-        <div class="row">
-            <div class="col-md-6" id="convert-results"></div>
-            <div class="col-md-6" id="convert-help" style="display:none;"></div>
-        </div>
-    </div>
+        </p>
+    </form>
+    <div id="convert-results"></div>
+    <div id="convert-help"></div>
     <script src="nlconvert.js"></script>
     <script>
         var inputEl = document.getElementById('convert-input');
-        inputEl.value = "50 lb";
+        inputEl.value = "22 1/20 lbs";
         inputEl.focus();
-        Convert.initialize();
-
+        Convert.initialize({'helpElement': '#convert-help'});
+        Convert.debugExpressions();
     </script>
 </div>
 </body>

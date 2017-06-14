@@ -1,40 +1,63 @@
 var Convert = (function() {
     "use strict";
     var debugMode = false;
-    var annotationedFunction = function(f, descr) {
+
+    var multiplier = function(value) {
+        return function(input) { return input * value; }
+    };
+
+    var createFormula = function(fromUnit, toUnit, conversion) {
+        return {
+            'fromUnit': fromUnit,
+            'toUnit': toUnit,
+            'conversion': conversion
+        };
+    };
+
+    var isNumber = function(o) {
+        return typeof o === 'number';
+    };
+    
+    var pluralize = function(single, fmt) {
+        var suffix = '';
+        var i = single.indexOf('^');
+        var hasToken = (fmt[0] === '+');
+        if(i > -1 && hasToken) {
+            suffix = single.substr(i);
+            single = single.substring(0, i);
+        }
+        return hasToken ? single + fmt.substr(1) + suffix: fmt;
+    };
+
+    var annotate = function(f, descr) {
         f.description = descr;
         return f;
     };
-    var Formula = function(fromUnit, toUnit, conversion) {
-        this.fromUnit = fromUnit;
-        this.toUnit = toUnit;
-        this.conversion = conversion;
-    };
-    Formula.make = function(fu, tu, c) {
-        return new Formula(fu, tu, c);
+
+    var annotations = {
+        c2f:   annotate(function(c) { return c * 9/5 + 32; }, 'C * 9 / 5 + 32'),
+        f2c:   annotate(function(f) { return (f  - 32) * 5/9; }, '(F - 32) * 5 / 9'),
+        i2hex: annotate(function(i) { return '0x' + i.toString(16); }, 'HEX'),
+        i2e:   annotate(function(i) { return i.toExponential(); }, 'EXP'),
     };
 
-    var initialFormulas = (function(formulas) {
-        var objs = formulas.map(function(f) { return Formula.make.apply(null, f); });
-        return objs;
-    }([ ['acre',         'hectare',      0.4047],
+    var initialFormulas = [
+        // from Unit     to Unit         conversion        
+        ['acre',         'hectare',      0.4047],
         ['acre',         'meter^2',      4046.86],
         ['acre',         'yard^2',       4840],
         ['atmosphere',   'pounds/in^2',  14.696],
-        ['celsius',      'fahrenheit',   annotationedFunction(
-                                            function(c) { return c * 9/5 + 32; },
-                                            'C * 9 / 5 + 32')],
-        ['fahrenheit',   'celsius',      annotationedFunction(
-                                            function(f) { return (f  - 32) * 5/9; },
-                                            '(F - 32) * 5 / 9')],
         ['barrel',       'meter^3',      0.159],
         ['bushel',       'liter',        36.4],
+        ['celsius',      'fahrenheit',   annotations.c2f],
         ['centiliter',   'pint',         0.0211],
         ['centimeter',   'inch',         0.3937],
         ['centimeter^2', 'inch^2',       0.155],
         ['centimeter^3', 'inch^3',       0.06102],
         ['cup',          'milliliter',   240],
         ['cup',          'ounce',        8],
+        ['cup',          'tablespoon',   16],
+        ['fahrenheit',   'celsius',      annotations.f2c],
         ['foot',         'meter',        0.3048],
         ['foot^2',       'inch^2',       144],
         ['foot^2',       'meter^2',      0.0929],
@@ -50,12 +73,10 @@ var Convert = (function() {
         ['inch^2',       'millimeter^2', 645.16],
         ['inch^3',       'pint',         0.0347],
         ['inch^3',       'centiliter',   1.639],
-        ['int',          'hex',          annotationedFunction(
-                                            function(i) { return '0x' + i.toString(16); },
-                                            'HEX')],
-        ['int',          'exp',          annotationedFunction(
-                                            function(i) { return i.toExponential(); },
-                                            'EXP')],
+        ['int',          'hex',          annotations.i2hex],
+        ['int',          'exp',          annotations.i2e],
+        ['league',       'mile',         3],
+        ['league',       'kilometer',    3 * 0.6214],
         ['kilogram',     'pound',        2.205],
         ['kilometer',    'mile',         0.6214],
         ['kilometer^2',  'mile^2',       0.3861],
@@ -68,16 +89,17 @@ var Convert = (function() {
         ['mile^2',       'acre',         640],
         ['pint',         'fluid ounce',  16],
         ['quart',        'liter',        0.9463],
+        ['rod',          'yard',         5.5],
         ['stone',        'pound',        14],
         ['stone',        'kilogram',     6.35],
         ['tablespoon',   'milliliter',   15],
         ['tablespoon',   'teaspoon',     3],
         ['teaspoon',     'milliliter',   5],
         ['yard^2',       'foot^2',       9]
-    ]));
+    ].map(function(f) { return createFormula.apply(null, f); });
     
     var unitConfig = [
-        //  Name           Plural format   Abbreviations
+        // Name          Plural format   Abbreviations
         ['acre',         '+s',           null],
         ['barrel',       '+s',           null],
         ['bushel',       '+s',           'bush'],
@@ -93,6 +115,8 @@ var Convert = (function() {
         ['foot',         'feet',         'ft'],
         ['foot^2',       'feet^2',       'ft2'],
         ['foot^3',       'feet^3',       'ft3'],
+        ['fathom',       '+s',           null],
+        ['furlong',      '+s',           null],
         ['gallon',       '+s',           'gal'],
         ['gram',         '+s',           'g'],
         ['hectare',      '+s',           'hect'],
@@ -105,6 +129,7 @@ var Convert = (function() {
         ['kilometer',    '+s',           'km'],
         ['kilometer^2',  '+s',           'km2'],
         ['knot',         '+s',           'kn'],
+        ['league',       '+s',           'lg'],
         ['liter',        '+s',           'l'],
         ['meter',        '+s',           'm'],
         ['meter^2',      '+s',           'm2'],
@@ -120,6 +145,7 @@ var Convert = (function() {
         ['pint',         '+s',           'pt,pts'],
         ['pound',        '+s',           'lb,lbs'],
         ['quart',        '+s',           'qt,qts'],
+        ['rod',          '+s',            null],
         ['stone',        '+s',           'st'],
         ['tablespoon',   '+s',           'tb,tbl,tbs'],
         ['teaspoon',     '+s',           'tsp,tsps'],
@@ -127,133 +153,165 @@ var Convert = (function() {
         ['yard^2',       '+s',           'yd2,yds2'],
         ['yard^3',       '+s',           'yd3,yds3']
     ];
-    var isNumber = function(o) { return typeof o === 'number'; }
-    var pluralize = function(single, fmt) {
-        var suffix = '';
-        var i = single.indexOf('^');
-        var hasToken = (fmt[0] === '+');
-        if(i > -1 && hasToken) {
-            suffix = single.substr(i);
-            single = single.substring(0, i);
-        }
-        return hasToken ? single + fmt.substr(1) + suffix: fmt;
-    };
-    var unitId = 0;
-    var Unit = function(single, plural, abbr, sigDigits) {
-        this.id = 'u' + unitId++;
-        this.abbr = abbr;
-        this.single = single;
-        this.plural = plural;
-        this.conversions = [];
-        this.sigDigits = sigDigits || 4;
-    };
-    Unit.prototype.formats = function(value) {
-        var label = value === 1 ? this.single : this.plural;
-        if(isNumber(value)) {
-            value = value.toFixed(4).toString().replace(/([.]\d+?)(0+)$/, '$1 ');
-        }
-        return [value, label];
-    };
-    Unit.prototype.addConverter = function(converter) {
-        this.conversions.push(converter);
-    };
-    Unit.prototype.convertAll = function(value) {
-        return this.conversions.map(function(converter) {
-            return converter.convert(value);
-        });
-    };
     
-    var multiplier = function(value) { return function(input) { return input * value; } };
-    var Result = function(value, unit) {
-        this.value = value;
-        this.unit = unit;
-    };
-    Result.prototype.formats = function() {
-        return this.unit.formats(this.value);
-    };
-    Result.prototype.toString = function() {
-        return this.formats().join(' ');
-    };
-    
-    var Converter = function(toUnit, value) {
-        this.value = value
-        this.func = isNumber(value) ? multiplier(value) : value;
-        this.toUnit = toUnit;
-    };
-    Converter.prototype.convert = function(value) {
-        return new Result(this.func(value), this.toUnit);
-    };
-    Converter.prototype.valueRepr = function() {
-        var value = this.value;
-        if(typeof value === 'number') {
-            value = (value < 0.0001) ? value.toFixed(6) : value.toFixed(value >= 1 ? 3 : 4);
-            return value.replace(/[.]0+$/, '');
+    var formatNumber = function(obj) {
+        var value = obj;
+        var bits;
+        if(parseFloat(value) === 0) {
+            return '0';
         }
-        if(typeof value === 'function' && value.description) {
-            return value.description;
+        else {
+            value = value.toFixed(4).toString();
+            bits = value.split('.');
+            if(bits.length == 2) {
+                bits[1] = bits[1].replace(/0+$/, '');
+                value = bits[1] ? bits.join('.') : bits[0];
+            }
         }
-        value = value.toString();
-        value = value.substring(value.indexOf('{') + 1, value.indexOf('}'));
-        return value.replace('return ', '').replace(';', '');
+        return value;
     };
 
-    
-    var UnitsOfMeasure = function(config, formulas) {
-        this.units = {};
-        config.forEach(function(u) { this.add.apply(this, u); }, this);
-        formulas.forEach(function(e) { this.addFormula(e); }, this);
-    };
-    UnitsOfMeasure.prototype.addFormula = function(formula) {
-        if(this.has(formula.fromUnit) && this.has(formula.toUnit)) {
-            if(isNumber(formula.conversion)) {
-                this.units[formula.toUnit].addConverter(
-                    new Converter(this.units[formula.fromUnit], 1 / formula.conversion)
-                );
+    var unitId = 0;
+    var Unit = Object.create({ 
+        init: function(single, plural, abbr, sigDigits) {
+            this.id = 'u' + unitId++;
+            this.abbr = abbr;
+            this.single = single;
+            this.plural = plural;
+            this.conversions = [];
+            this.sigDigits = sigDigits || 4;
+            return this;
+        },
+        formats: function(value) {
+            var label = value === 1 ? this.single : this.plural;
+            if(isNumber(value)) {
+                value = formatNumber(value);
             }
-            this.units[formula.fromUnit].addConverter(
-                new Converter(this.units[formula.toUnit], formula.conversion)
-            );
-            return true;
+            return [value, label];
+        },
+        addConverter: function(converter) {
+            this.conversions.push(converter);
+        },
+        convertAll: function(value) {
+            return this.conversions.map(function(converter) {
+                return converter.convert(value);
+            });
+        },
+    });
+
+    var Result = Object.create({
+        init: function(value, unit) {
+            this.value = value;
+            this.unit = unit;
+            return this;
+        },
+        formats: function() {
+            return this.unit.formats(this.value);
+        },
+        toString: function() {
+            return this.formats().join(' ');
         }
-        return false;
-    };
-    UnitsOfMeasure.prototype.has = function(label) {
-        return this.units.hasOwnProperty(label);
-    };
-    UnitsOfMeasure.prototype.get = function(label) {
-        return this.has(label) ? this.units[label] : null;
-    };
-    UnitsOfMeasure.prototype.convert = function(value, label) {
-        var unit = this.get(label);
-        var conversions = null;
-        if(!unit) {
-            return conversions;
+    });
+    
+    var Converter = Object.create({
+        init: function(toUnit, value) {
+            this.value = value
+            this.func = isNumber(value) ? multiplier(value) : value;
+            this.toUnit = toUnit;
+            return this;
+        },
+        convert: function(value) {
+            return Object.create(Result).init(this.func(value), this.toUnit);
+        },
+        valueRepr: function() {
+            var value = this.value;
+            if(typeof value === 'number') {
+                value = (value < 0.0001) ? value.toFixed(6) : value.toFixed(value >= 1 ? 3 : 4);
+                return value.replace(/[.]0+$/, '');
+            }
+            if(typeof value === 'function' && value.description) {
+                return value.description;
+            }
+            value = value.toString();
+            value = value.substring(value.indexOf('{') + 1, value.indexOf('}'));
+            return value.replace('return ', '').replace(';', '');
         }
-        conversions = unit.convertAll(value);
-        return {results: conversions, unit: unit};
-    };
-    UnitsOfMeasure.prototype._set = function(label, unit) {
-        if(this.has(label)) {
-            console.warn('Unit label already exists: ', label);
+    });
+    
+    var UnitsOfMeasure = Object.create({
+        init: function(config, formulas) {
+            this.units = {};
+            config.forEach(function(u) { this.add.apply(this, u); }, this);
+            formulas.forEach(function(e) { this.addFormula(e); }, this);
+            return this;
+        },
+        addFormula: function(formula) {
+            if(this.has(formula.fromUnit) && this.has(formula.toUnit)) {
+                if(isNumber(formula.conversion)) {
+                    this.units[formula.toUnit].addConverter(
+                        Object.create(Converter).init(
+                            this.units[formula.fromUnit],
+                            1 / formula.conversion
+                        )
+                    );
+                }
+                this.units[formula.fromUnit].addConverter(
+                    Object.create(Converter).init(
+                        this.units[formula.toUnit],
+                        formula.conversion
+                    )
+                );
+                return true;
+            }
+            return false;
+        },
+        has: function(label) {
+            return this.units.hasOwnProperty(label);
+        },
+        get: function(label) {
+            return this.has(label) ? this.units[label] : null;
+        },
+        convert: function(value, label) {
+            var unit = this.get(label);
+            var conversions = null;
+            if(!unit) {
+                return conversions;
+            }
+            conversions = unit.convertAll(value);
+            return {results: conversions, unit: unit};
+        },
+        _set: function(label, unit) {
+            if(this.has(label)) {
+                console.warn('Unit label already exists: ', label);
+            }
+            this.units[label] = unit;
+        },
+        add: function(name, pluralFmt, abbr) {
+            var plural = pluralize(name, pluralFmt || name);
+            var abbrs = abbr ? abbr.split(',') : [''];
+            var unit = Object.create(Unit).init(name, plural, abbrs);
+            this._set(name, unit);
+            if(abbrs[0]) {
+                abbrs.forEach(function(a) {
+                    this._set(a.trim(), unit);
+                }, this);
+            }
+            if(name !== plural) {
+                this._set(plural, unit);
+            }
         }
-        this.units[label] = unit;
-    };
-    UnitsOfMeasure.prototype.add = function(name, pluralFmt, abbr) {
-        var plural = pluralize(name, pluralFmt || name);
-        var abbrs = abbr ? abbr.split(',') : [''];
-        var unit = new Unit(name, plural, abbrs)
-        this._set(name, unit);
-        if(abbrs[0]) {
-            abbrs.forEach(function(a) {
-                this._set(a.trim(), unit);
-            }, this);
+    });
+    
+    var unitsOfMeasure = Object.create(UnitsOfMeasure).init(unitConfig, initialFormulas);
+    var parseFraction = function(m) {
+        var value = 0;
+        if(m[2]) {
+            value = parseInt(m[2]);
         }
-        if(name !== plural) {
-            this._set(plural, unit);
-        }
+        value += parseInt(m[3]) / parseInt(m[4]);
+        return m[1] === '-' ? -value : value;
     };
     
-    var UOM = new UnitsOfMeasure(unitConfig, initialFormulas);
     var parseExpression = (function() {
         var numRe = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/;
         var fracRe = /^([-+])?(?:(\d+) +)?(\d+)\/([1-9]\d*)/;
@@ -293,18 +351,6 @@ var Convert = (function() {
             return value ? {value: value, label: label, text: text} : null;
         };
         
-        if(debugMode) {
-            console.table([
-                "1 gr",
-                "12 F",
-                "3 4/5 oz",
-                "45 56/67",
-                "1/2 m",
-                "23/4",
-                "-2/3",
-                "+2/3"
-            ].map(function(i) { return parse(i); }));
-        }
         return parse;
     }());
     
@@ -375,11 +421,6 @@ var Convert = (function() {
         headText.forEach(function(t) {
             tr.appendChild(createElement('th', t));
         });
-        document.querySelector('.convert-help-toggle').addEventListener('click', function(evt) {
-            var el = document.getElementById('convert-help');
-            el.style.display = el.style.display === 'none' ? 'inherit' : 'none';
-            evt.preventDefault();
-        }, false);
         
         Object.getOwnPropertyNames(units).forEach(function(key) {
             var unit = units[key];
@@ -388,7 +429,13 @@ var Convert = (function() {
                 unit.conversions.forEach(function(conv) {
                     tr = createElement('tr');
                     tr.appendChild(createElement('td', Convert.swapCaret(unit.single)));
-                    tr.appendChild(createElement('td', unit.abbr));
+                    if(unit.abbr) {
+                        tr.appendChild(createElement(
+                            'td',
+                            unit.abbr.join(", ")
+                        ));
+                    }
+                    
                     tr.appendChild(createElement('td', Convert.swapCaret(conv.toUnit.single)));
                     tr.appendChild(createElement('td', conv.valueRepr()));
                     tbody.appendChild(tr);
@@ -406,35 +453,49 @@ var Convert = (function() {
         resultsItemClass: 'list-group-item',
         resultsContainer: '#convert-results',
 
-        helpElement: '#convert-help',
+        helpElement: false,
         helpTableClass: 'table table-striped table-bordered'
     };
+    
     return {
-        initialize: function(userOpts) {
-            var opts = merge(DEFAULT_CONF, userOpts || {});
-            var convInputEl = document.querySelector(opts.conversionInput);
-            buildHelp(opts, UOM.units);
+        initialize: function(userOptions) {
+            var options = merge(DEFAULT_CONF, userOptions || {});
+            var convInputEl = document.querySelector(options.conversionInput);
+            if(options.helpElement) {
+                buildHelp(options, unitsOfMeasure.units);    
+            }
+            
 
             convInputEl.addEventListener('input', function(e) {
                 var ex = parseExpression(e.target.value);
                 var res = null;
                 if(ex && ex.label) {
-                    res = UOM.convert(ex.value, ex.label);
+                    res = unitsOfMeasure.convert(ex.value, ex.label);
                 };
-                opts.conversionHandler.call(null, res, opts);
+                options.conversionHandler.call(null, res, options);
             }, false);
             
             if(convInputEl.value) {
                 convInputEl.dispatchEvent(new Event('input'));   
             }
         },
+        parseFraction: parseFraction,
         parseExpression: parseExpression,
         swapCaret: function(text) {
-            if(text instanceof Result) {
-                text = text.toString();
-            }
-            return text.replace(/\^(\d)/, '&sup$1;');
+            return text.toString().replace(/\^(\d)/, '&sup$1;');
         },
-        UOM: UOM
+        unitsOfMeasure: unitsOfMeasure,
+        debugExpressions: function() {
+            console.table([
+                "1 gr butter",
+                // "12 F",
+                // "3 4/5 oz",
+                // "45 56/67",
+                // "1/2 m",
+                // "23/4",
+                // "-2/3",
+                // "+2/3"
+            ].map(function(i) { return parseExpression(i); }));
+        }
     }
 }());
