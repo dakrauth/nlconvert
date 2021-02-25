@@ -1,27 +1,22 @@
-var Convert = (function() {
+const Convert = (function() {
     "use strict";
-    var debugMode = false;
 
-    var multiplier = function(value) {
-        return function(input) { return input * value; }
+    const swapCaret = text => text ? text.toString().replace(/\^(\d)/, '&sup$1;') : '';
+    const isNumber = o => typeof o === 'number';
+    const multiplier = value => function(input) { return input * value; };
+    const has = (obj, prop) => obj.hasOwnProperty(prop);
+
+    const clear = function(container) {
+        while(container.lastChild) {
+            container.removeChild(container.lastChild);
+        }
+        return container;
     };
 
-    var createFormula = function(fromUnit, toUnit, conversion) {
-        return {
-            'fromUnit': fromUnit,
-            'toUnit': toUnit,
-            'conversion': conversion
-        };
-    };
-
-    var isNumber = function(o) {
-        return typeof o === 'number';
-    };
-    
-    var pluralize = function(single, fmt) {
-        var suffix = '';
-        var i = single.indexOf('^');
-        var hasToken = (fmt[0] === '+');
+    const pluralize = function(single, fmt) {
+        let suffix = '';
+        const i = single.indexOf('^');
+        const hasToken = (fmt[0] === '+');
         if(i > -1 && hasToken) {
             suffix = single.substr(i);
             single = single.substring(0, i);
@@ -29,203 +24,67 @@ var Convert = (function() {
         return hasToken ? single + fmt.substr(1) + suffix: fmt;
     };
 
-    var annotate = function(f, descr) {
+    const annotate = function(f, descr) {
         f.description = descr;
         return f;
     };
 
-    var annotations = {
-        c2f:   annotate(function(c) { return c * 9/5 + 32; }, 'C * 9 / 5 + 32'),
-        f2c:   annotate(function(f) { return (f  - 32) * 5/9; }, '(F - 32) * 5 / 9'),
-        i2hex: annotate(function(i) { return '0x' + i.toString(16); }, 'HEX'),
-        i2e:   annotate(function(i) { return i.toExponential(); }, 'EXP'),
-    };
-
-    var initialFormulas = [
-        // from Unit     to Unit         conversion        
-        ['acre',         'hectare',      0.4047],
-        ['acre',         'meter^2',      4046.86],
-        ['acre',         'yard^2',       4840],
-        ['atmosphere',   'pounds/in^2',  14.696],
-        ['barrel',       'meter^3',      0.159],
-        ['bushel',       'liter',        36.4],
-        ['celsius',      'fahrenheit',   annotations.c2f],
-        ['centiliter',   'pint',         0.0211],
-        ['centimeter',   'inch',         0.3937],
-        ['centimeter^2', 'inch^2',       0.155],
-        ['centimeter^3', 'inch^3',       0.06102],
-        ['cup',          'milliliter',   240],
-        ['cup',          'ounce',        8],
-        ['cup',          'tablespoon',   16],
-        ['fahrenheit',   'celsius',      annotations.f2c],
-        ['foot',         'meter',        0.3048],
-        ['foot^2',       'inch^2',       144],
-        ['foot^2',       'meter^2',      0.0929],
-        ['foot^3',       'inch^3',       1728],
-        ['foot^3',       'meter^3',      0.02832],
-        ['fluid ounce',  'inch^3',       1.878],
-        ['fluid ounce',  'liter',        0.0296],
-        ['fluid ounce',  'tablespoon',   2],
-        ['gallon',       'liter',        3.785],
-        ['gram',         'ounce',        0.03527],
-        ['hectare',      'mile^2',       3.8612],
-        ['inch',         'millimeter',   25.4],
-        ['inch^2',       'millimeter^2', 645.16],
-        ['inch^3',       'pint',         0.0347],
-        ['inch^3',       'centiliter',   1.639],
-        ['int',          'hex',          annotations.i2hex],
-        ['int',          'exp',          annotations.i2e],
-        ['league',       'mile',         3],
-        ['league',       'kilometer',    3 * 0.6214],
-        ['kilogram',     'pound',        2.205],
-        ['kilometer',    'mile',         0.6214],
-        ['kilometer^2',  'mile^2',       0.3861],
-        ['kilometer^2',  'hectare',      100],
-        ['knot',         'mph',          1.151],
-        ['liter',        'pint',         2.1133],
-        ['meter',        'yard',         1.094],
-        ['meter^2',      'yard^2',       1.196],
-        ['meter^3',      'yard^3',       1.308],
-        ['mile^2',       'acre',         640],
-        ['pint',         'fluid ounce',  16],
-        ['quart',        'liter',        0.9463],
-        ['rod',          'yard',         5.5],
-        ['stone',        'pound',        14],
-        ['stone',        'kilogram',     6.35],
-        ['tablespoon',   'milliliter',   15],
-        ['tablespoon',   'teaspoon',     3],
-        ['teaspoon',     'milliliter',   5],
-        ['yard^2',       'foot^2',       9]
-    ].map(function(f) { return createFormula.apply(null, f); });
-    
-    var unitConfig = [
-        // Name          Plural format   Abbreviations
-        ['acre',         '+s',           null],
-        ['barrel',       '+s',           null],
-        ['bushel',       '+s',           'bush'],
-        ['celsius',      null,           'c'],
-        ['centiliter',   '+s',           'cl'],
-        ['centimeter',   '+s',           'cm'],
-        ['centimeter^2', '+s',           'cm2'],
-        ['centimeter^3', '+s',           'cm3'],
-        ['cup',          '+s',           null],
-        ['exp',          null,           null],
-        ['fahrenheit',   null,           'f'],
-        ['fluid ounce',  '+s',           'floz,fl oz'],
-        ['foot',         'feet',         'ft'],
-        ['foot^2',       'feet^2',       'ft2'],
-        ['foot^3',       'feet^3',       'ft3'],
-        ['fathom',       '+s',           null],
-        ['furlong',      '+s',           null],
-        ['gallon',       '+s',           'gal'],
-        ['gram',         '+s',           'g'],
-        ['hectare',      '+s',           'hect'],
-        ['hex',          null,           null],
-        ['inch',         '+es',          'in'],
-        ['inch^2',       '+es',          'in2'],
-        ['inch^3',       '+es',          'in3'],
-        ['int',          null,           null],
-        ['kilogram',     '+s',           'kg'],
-        ['kilometer',    '+s',           'km'],
-        ['kilometer^2',  '+s',           'km2'],
-        ['knot',         '+s',           'kn'],
-        ['league',       '+s',           'lg'],
-        ['liter',        '+s',           'l'],
-        ['meter',        '+s',           'm'],
-        ['meter^2',      '+s',           'm2'],
-        ['meter^3',      '+s',           'm3'],
-        ['mile',         '+s',           'mi'],
-        ['mile^2',       '+s',           'mi2'],
-        ['milligram',    '+s',           'mg'],
-        ['millimeter',   '+s',           'mm'],
-        ['millimeter^2', '+s',           'mm2'],
-        ['milliliter',   '+s',           'ml'],
-        ['mph',          null,           null],
-        ['ounce',        '+s',           'oz'],
-        ['pint',         '+s',           'pt,pts'],
-        ['pound',        '+s',           'lb,lbs'],
-        ['quart',        '+s',           'qt,qts'],
-        ['rod',          '+s',            null],
-        ['stone',        '+s',           'st'],
-        ['tablespoon',   '+s',           'tb,tbl,tbs'],
-        ['teaspoon',     '+s',           'tsp,tsps'],
-        ['yard',         '+s',           'yd,yds'],
-        ['yard^2',       '+s',           'yd2,yds2'],
-        ['yard^3',       '+s',           'yd3,yds3']
-    ];
-    
-    var formatNumber = function(obj) {
-        var value = obj;
-        var bits;
-        if(parseFloat(value) === 0) {
+    const formatNumber = function(obj) {
+        if(parseFloat(obj) === 0) {
             return '0';
         }
-        else {
-            value = value.toFixed(4).toString();
-            bits = value.split('.');
-            if(bits.length == 2) {
-                bits[1] = bits[1].replace(/0+$/, '');
-                value = bits[1] ? bits.join('.') : bits[0];
-            }
-        }
-        return value;
+
+        let bits = obj.toFixed(4).split('.');
+        bits[0] = parseInt(bits[0]).toLocaleString()
+        bits[1] = bits[1].replace(/0+$/, '');
+        return bits[1] ? bits.join('.') : bits[0];
     };
 
-    var unitId = 0;
-    var Unit = Object.create({ 
-        init: function(single, plural, abbr, sigDigits) {
-            this.id = 'u' + unitId++;
-            this.abbr = abbr;
-            this.single = single;
-            this.plural = plural;
-            this.conversions = [];
-            this.sigDigits = sigDigits || 4;
-            return this;
-        },
-        formats: function(value) {
-            var label = value === 1 ? this.single : this.plural;
-            if(isNumber(value)) {
-                value = formatNumber(value);
-            }
-            return [value, label];
-        },
-        addConverter: function(converter) {
-            this.conversions.push(converter);
-        },
-        convertAll: function(value) {
-            return this.conversions.map(function(converter) {
-                return converter.convert(value);
-            });
-        },
-    });
+    let unitId = 0;
 
-    var Result = Object.create({
-        init: function(value, unit) {
+    class Unit { 
+        constructor(name, plural, abbrs, precision=4) {
+            this.id = 'u' + unitId++;
+            this.abbrs = abbrs ? abbrs.split(',') : [];
+            this.name = name;
+            this.plural = pluralize(name, plural || name);
+            this.conversions = [];
+            this.precision = precision;
+        }
+        format(value) {
+            return {
+                value: isNumber(value) ? formatNumber(value) : value,
+                label: value === 1 ? this.name : this.plural
+            };
+        }
+    }
+
+    class Result {
+        constructor(value, unit) {
             this.value = value;
             this.unit = unit;
-            return this;
-        },
-        formats: function() {
-            return this.unit.formats(this.value);
-        },
-        toString: function() {
-            return this.formats().join(' ');
         }
-    });
-    
-    var Converter = Object.create({
-        init: function(toUnit, value) {
+        format() {
+            return this.unit.format(this.value);
+        }
+    }
+
+    class Converter {
+        constructor(fromUnit, toUnit, value) {
             this.value = value
             this.func = isNumber(value) ? multiplier(value) : value;
             this.toUnit = toUnit;
-            return this;
-        },
-        convert: function(value) {
-            return Object.create(Result).init(this.func(value), this.toUnit);
-        },
-        valueRepr: function() {
-            var value = this.value;
-            if(typeof value === 'number') {
+            this.fromUnit = fromUnit;
+        }
+        convert(value) {
+            return new Result(this.func(value), this.toUnit);
+        }
+        invert() {
+            return new Converter(this.toUnit, this.fromUnit, 1 / this.value);
+        }
+        valueRepr() {
+            let value = this.value;
+            if(isNumber(value)) {
                 value = (value < 0.0001) ? value.toFixed(6) : value.toFixed(value >= 1 ? 3 : 4);
                 return value.replace(/[.]0+$/, '');
             }
@@ -236,171 +95,165 @@ var Convert = (function() {
             value = value.substring(value.indexOf('{') + 1, value.indexOf('}'));
             return value.replace('return ', '').replace(';', '');
         }
-    });
+    }
     
-    var UnitsOfMeasure = Object.create({
-        init: function(config, formulas) {
+    class UnitsOfMeasure {
+        constructor(units) {
             this.units = {};
-            config.forEach(function(u) { this.add.apply(this, u); }, this);
-            formulas.forEach(function(e) { this.addFormula(e); }, this);
-            return this;
-        },
-        addFormula: function(formula) {
-            if(this.has(formula.fromUnit) && this.has(formula.toUnit)) {
-                if(isNumber(formula.conversion)) {
-                    this.units[formula.toUnit].addConverter(
-                        Object.create(Converter).init(
-                            this.units[formula.fromUnit],
-                            1 / formula.conversion
-                        )
-                    );
+            this.unitConversions = {};
+            this.addUnits(units);
+        }
+        addUnits(units) {
+            let conversion_queue = [];
+            for(const [key, attrs] of Object.entries(units)) {
+                let unit = this._addUnit(key, attrs.plural, attrs.abbrs);
+                if(attrs.conversions) {
+                    unit.conversions = attrs.conversions;
+                    conversion_queue.push({fromUnit: unit, conversions: attrs.conversions});
                 }
-                this.units[formula.fromUnit].addConverter(
-                    Object.create(Converter).init(
-                        this.units[formula.toUnit],
-                        formula.conversion
-                    )
-                );
-                return true;
             }
-            return false;
-        },
-        has: function(label) {
-            return this.units.hasOwnProperty(label);
-        },
-        get: function(label) {
-            return this.has(label) ? this.units[label] : null;
-        },
-        convert: function(value, label) {
-            var unit = this.get(label);
-            var conversions = null;
-            if(!unit) {
-                return conversions;
+            for(const pending of conversion_queue) {
+                for(const [name, value] of Object.entries(pending.conversions)) {
+                    let toUnit = this.unit(name);
+                    if(!toUnit) {
+                        toUnit = this._addUnit(name, name);
+                    }
+                    this._addConverter(pending.fromUnit, toUnit, value)
+                }
             }
-            conversions = unit.convertAll(value);
-            return {results: conversions, unit: unit};
-        },
-        _set: function(label, unit) {
-            if(this.has(label)) {
+        }
+        _getOrCreateConversions(name) {
+            if(!has(this.unitConversions, name)) {
+                this.unitConversions[name] = {};
+            }
+            return this.unitConversions[name];
+        }
+        _addConverter(fromUnit, toUnit, value) {
+            if(0 && (fromUnit.name == 'acre' || fromUnit.name == 'hectare')) {
+                debugger;
+            }
+            const converter = new Converter(fromUnit, toUnit, value);
+            this._getOrCreateConversions(fromUnit.name)[toUnit.name] = converter;
+            if(!has(toUnit.conversions, fromUnit.name) && isNumber(value)) {
+                this._getOrCreateConversions(toUnit.name)[fromUnit.name] = converter.invert();
+            }
+        }
+        _addUnit(unitName, plural, abbrs) {
+            let unit = this._set(unitName, new Unit(unitName, plural, abbrs));
+            for(const abbr of unit.abbrs) {
+                this._set(abbr, unit);
+            }
+            return unit;
+        }
+        unit(label) {
+            return has(this.units, label) ? this.units[label] : null;
+        }
+        conversions(label) {
+            return has(this.unitConversions, label) ? this.unitConversions[label] : null;
+        }
+        convert(value, label) {
+            const unit = this.unit(label);
+            if(unit) {
+                const converters = this.conversions(unit.name);
+                if(converters) {
+                    return {
+                        results: Object.values(converters).map(function(conv) {
+                          return conv.convert(value);
+                        }),
+                        unit: unit
+                    };
+                }
+            }
+            return null;
+        }
+        _set(label, unit) {
+            if(has(this.units, label)) {
                 console.warn('Unit label already exists: ', label);
             }
             this.units[label] = unit;
+            return unit;
+        }
+        helpMatrix() {
+            let keys = Object.keys(this.unitConversions);
+            let matrix = [];
+            keys.sort();
+            for(const key of keys) {
+                const unit = this.unit(key);
+                const converters = this.conversions(key);
+                for(const conv of Object.values(converters)) {
+                    matrix.push({
+                        name: swapCaret(unit.name),
+                        abbrs: unit.abbrs ? unit.abbrs.join(", ") : "",
+                        toUnit: swapCaret(conv.toUnit.name),
+                        value: conv.valueRepr()
+                    });
+                }
+            }
+            return matrix;
+        }
+    }
+
+    const Parser = {
+        numRe: /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/,
+        fracRe: /^([-+])?(?:(\d+) +)?(\d+)\/([1-9]\d*)/,
+        expression: function(value, label, text) {
+            return {
+                'value': value,
+                'label': label,
+                'text': text
+            };
         },
-        add: function(name, pluralFmt, abbr) {
-            var plural = pluralize(name, pluralFmt || name);
-            var abbrs = abbr ? abbr.split(',') : [''];
-            var unit = Object.create(Unit).init(name, plural, abbrs);
-            this._set(name, unit);
-            if(abbrs[0]) {
-                abbrs.forEach(function(a) {
-                    this._set(a.trim(), unit);
-                }, this);
+        parseFraction: function(text, match) {
+            let value = 0;
+            if(!match) {
+                match = Parser.fracRe.exec(text);
+                if(!match) {
+                    console.log('parseFraction fail:', text)
+                }
             }
-            if(name !== plural) {
-                this._set(plural, unit);
+            if(match[2]) {
+                value = parseInt(match[2]);
             }
-        }
-    });
-    
-    var unitsOfMeasure = Object.create(UnitsOfMeasure).init(unitConfig, initialFormulas);
-    var parseFraction = function(m) {
-        var value = 0;
-        if(m[2]) {
-            value = parseInt(m[2]);
-        }
-        value += parseInt(m[3]) / parseInt(m[4]);
-        return m[1] === '-' ? -value : value;
-    };
-    
-    var parseExpression = (function() {
-        var numRe = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/;
-        var fracRe = /^([-+])?(?:(\d+) +)?(\d+)\/([1-9]\d*)/;
-        var parseFraction = function(m) {
-            var value = 0;
-            if(m[2]) {
-                value = parseInt(m[2]);
-            }
-            value += parseInt(m[3]) / parseInt(m[4]);
-            return m[1] === '-' ? -value : value;
-        };
-        
-        var parse = function(text) {
-            var label   = '',
-                value = false,
-                match = fracRe.exec(text);
+            value += parseInt(match[3]) / parseInt(match[4]);
+            let label = text.substr(match[0].length).trim();
+            return Parser.expression(
+                match[1] === '-' ? -value : value,
+                label || 'fraction',
+                text
+            );
+        },
+        parse: function(text) {
+            let label = '';
+            let value = false;
+            let match = Parser.fracRe.exec(text);
                 
             if(match) {
-                match = fracRe.exec(text);
-                if(match) {
-                    value = parseFraction(match);
-                }
+                return Parser.parseFraction(text, match)
+            }
+
+            match = Parser.numRe.exec(text);
+            if(match) {
+                value = parseFloat(match[0]);
             }
             else {
-                match = numRe.exec(text);
-                if(match) {
-                    value = parseFloat(match[0])
-                }
-                else {
-                    console.log('parseExpression fail:', text);
-                }
+                console.log('Parser.parse fail:', text);
             }
 
             if(match) {
-                label = text.substr(match[0].length).trim().toLowerCase() || 'int';
+                label = text.substr(match[0].length).trim().toLowerCase() || 'number';
             }
-            return value ? {value: value, label: label, text: text} : null;
-        };
-        
-        return parse;
-    }());
-    
-    var merge = function() {
-        var obj = {};
-        var arg, i, prop;
-        for(i = 0; i < arguments.length; i++) {
-            arg = arguments[i];
-            for(prop in arg) {
-                if(arg.hasOwnProperty(prop)) {
-                    obj[prop] = arg[prop];
-                }
-            }
+            return value ? Parser.expression(value, label, text) : null;
         }
-        return obj;
     };
 
-    var defaultConversionHandler = function(conversions, opts) {
-        var container = document.querySelector(opts.resultsContainer);
-        var ul = createElement('ul');
-        ul.className = opts.resultsGroupClass || '';
-        while(container.lastChild) {
-            container.removeChild(container.lastChild);
-        }
-        //console.log(conversions);
-        if(conversions && conversions.results.length) {
-            conversions.results.forEach(function(result) {
-                var formats = result.formats();
-                var child = createElement('li');
-                child.className = opts.resultsItemClass;
-                child.appendChild(createElement('span', formats[0]));
-                child.appendChild(createElement(
-                    'span',
-                    ' ' + Convert.swapCaret(formats[1])
-                ));
-                ul.appendChild(child);
-            });
-        }
-        container.appendChild(ul);
-    };
-
-    var createElement = function(tag, props) {
-        var el = document.createElement(tag);
-        var prop;
+    const createElement = function(tag, props) {
+        let el = document.createElement(tag);
         if(props) {
             if(typeof props === 'string') {
                 el.innerHTML = props;
             }
             else {
-                for(var prop in props) {
+                for(const prop in props) {
                     el[prop] = props[prop]
                 }
             }
@@ -408,94 +261,193 @@ var Convert = (function() {
         return el;
     };
 
-    var buildHelp = function(opts, units) {
-        var seen = {};
-        var table = createElement('table', {className: opts.helpTableClass});
-        var tbody = createElement('tbody');
-        var thead = createElement('thead');
-        var tr = createElement('tr');
-        var headText = ['From', 'Shortcuts', 'To', 'Multiply by'];
+    const defaultConversionHandler = function(conversions, opts) {
+        let container = clear(document.querySelector(opts.resultsContainer));
+        let ul = createElement('ul', {className: opts.resultsGroupClass || ''});
+
+        if(conversions && conversions.results.length) {
+            for(const result of conversions.results) {
+                const format = result.format();
+                let child = createElement('li');
+                child.className = opts.resultsItemClass;
+                child.appendChild(createElement('span', format.value));
+                child.appendChild(createElement('span', ' ' + swapCaret(format.label)));
+                ul.appendChild(child);
+            }
+        }
+        container.appendChild(ul);
+    };
+
+    const buildHelp = function(parent, units, opts) {
+        let table = createElement('table', {className: opts.helpTableClass});
+        let tbody = createElement('tbody');
+        let thead = createElement('thead');
+        let tr = createElement('tr');
         thead.appendChild(tr);
         table.appendChild(thead);
         table.appendChild(tbody);
-        headText.forEach(function(t) {
+        ['From', 'Shortcuts', 'To', 'Multiply by'].forEach(function(t) {
             tr.appendChild(createElement('th', t));
         });
-        
-        Object.getOwnPropertyNames(units).forEach(function(key) {
-            var unit = units[key];
-            if(!seen.hasOwnProperty(unit.id)) {
-                seen[unit.id] = true;
-                unit.conversions.forEach(function(conv) {
-                    tr = createElement('tr');
-                    tr.appendChild(createElement('td', Convert.swapCaret(unit.single)));
-                    if(unit.abbr) {
-                        tr.appendChild(createElement(
-                            'td',
-                            unit.abbr.join(", ")
-                        ));
-                    }
-                    
-                    tr.appendChild(createElement('td', Convert.swapCaret(conv.toUnit.single)));
-                    tr.appendChild(createElement('td', conv.valueRepr()));
-                    tbody.appendChild(tr);
-                });
-            }
-        });
-        document.querySelector(opts.helpElement).appendChild(table);
+
+        for(const item of units.helpMatrix()) {
+            tr = createElement('tr');
+            tr.appendChild(createElement('td', item.name));
+            tr.appendChild(createElement('td', item.abbrs));
+            tr.appendChild(createElement('td', item.toUnit));
+            tr.appendChild(createElement('td', item.value));
+            tbody.appendChild(tr);
+        };
+
+        clear(document.querySelector(parent)).appendChild(table);
     };
 
-    var DEFAULT_CONF = {
-        conversionInput: '#convert-input',
-        conversionHandler: defaultConversionHandler,
-        
+    const DEFAULT_CONF = {
+        handler: defaultConversionHandler,
+
         resultsGroupClass: 'list-group',
         resultsItemClass: 'list-group-item',
         resultsContainer: '#convert-results',
 
         helpElement: false,
-        helpTableClass: 'table table-striped table-bordered'
+        helpTableClass: 'table table-striped'
     };
-    
+
+    const initialFormulas = {
+        'acre': {
+            'conversions': {'hectare': 0.4047, 'meter^2': 4046.86, 'yard^2': 4840},
+            'plural': '+s',
+            'abbrs': null
+        },
+        'atmosphere': {'conversions': {'pounds/in^2': 14.696}, 'plural': '+s', 'abbrs': 'atm'},
+        'bar': {'conversions': {'atmosphere': 0.98692, 'pounds/in^2': 14.5038}, 'plural': '+s', 'abbrs': null},
+        'barrel': {'conversions': {'meter^3': 0.159}, 'plural': '+s', 'abbrs': null},
+        'bushel': {'conversions': {'liter': 36.4}, 'plural': '+s', 'abbrs': 'bush'},
+        'celsius': {
+            'conversions': {'fahrenheit': annotate(c => c * 9/5 + 32, 'C * 9 / 5 + 32')},
+            'plural': null,
+            'abbrs': 'c'
+        },
+        'centiliter': {'conversions': {'pint': 0.0211}, 'plural': '+s', 'abbrs': 'cl'},
+        'centimeter': {'conversions': {'inch': 0.3937}, 'plural': '+s', 'abbrs': 'cm'},
+        'centimeter^2': {'conversions': {'inch^2': 0.155}, 'plural': '+s', 'abbrs': 'cm2'},
+        'centimeter^3': {'conversions': {'inch^3': 0.06102}, 'plural': '+s', 'abbrs': 'cm3'},
+        'cup': {
+            'conversions': {'milliliter': 240, 'ounce': 8, 'tablespoon': 16},
+            'plural': '+s',
+            'abbrs': null
+        },
+        'exp': {'plural': null, 'abbrs': null},
+        'fahrenheit': {
+            'conversions': {'celsius': annotate(f => (f  - 32) * 5/9, '(F - 32) * 5 / 9')},
+            'plural': null,
+            'abbrs': 'f'
+        },
+        'fathom': {conversions: {'feet': 6, 'meter': 1.8288}, 'plural': '+s', 'abbrs': null},
+        'fluid ounce': {
+            'conversions': {'inch^3': 1.878, 'liter': 0.0296, 'tablespoon': 2},
+            'plural': '+s',
+            'abbrs': 'floz,fl oz'
+        },
+        'foot': {'conversions': {'meter': 0.3048}, 'plural': 'feet', 'abbrs': 'ft'},
+        'foot^2': {
+            'conversions': {'inch^2': 144, 'meter^2': 0.0929},
+            'plural': 'feet^2',
+            'abbrs': 'ft2'},
+        'foot^3': {
+            'conversions': {'inch^3': 1728, 'meter^3': 0.02832},
+            'plural': 'feet^3',
+            'abbrs': 'ft3'
+        },
+        'furlong': {'plural': '+s', 'abbrs': null},
+        'gallon': {'conversions': {'liter': 3.785}, 'plural': '+s', 'abbrs': 'gal'},
+        'gram': {'conversions': {'ounce': 0.03527}, 'plural': '+s', 'abbrs': 'g'},
+        'hectare': {'conversions': {'mile^2': 0.003861, 'kilometer^2': 0.01}, 'plural': '+s', 'abbrs': 'hect'},
+        'hex': {'plural': null, 'abbrs': null},
+        'inch': {'conversions': {'millimeter': 25.4}, 'plural': '+es', 'abbrs': 'in'},
+        'inch^2': {'conversions': {'millimeter^2': 645.16}, 'plural': '+es', 'abbrs': 'in2'},
+        'inch^3': {
+            'conversions': {'pint': 0.0347, 'centiliter': 1.639},
+            'plural': '+es',
+            'abbrs': 'in3'
+        },
+        'int': {
+            'conversions': [
+                ['hex', annotate(i => '0x' + i.toString(16), 'HEX')],
+                ['exp', annotate(i => i.toExponential(), 'EXP')]
+            ],
+            'plural': null,
+            'abbrs': null
+        },
+        'beer keg': {'conversions': {'cases': 6.8889, 'gallon': 15.5, 'beers': 165.333}, 'plural': '+s', 'abbrs': null},
+        'kilogram': {'conversions': {'pound': 2.205}, 'plural': '+s', 'abbrs': 'kg'},
+        'kilometer': {'conversions': {'mile': 0.6214}, 'plural': '+s', 'abbrs': 'k,km'},
+        'kilometer^2': {
+            'conversions': {'mile^2': 0.3861},
+            'plural': '+s',
+            'abbrs': 'km2'
+        },
+        'kilometers/hour': {'conversions': {}, 'plural': null, 'abbrs': 'kph'},
+        'knot': {'conversions': {'mph': 1.151, 'kph': 1.852}, 'plural': '+s', 'abbrs': 'kn'},
+        'league': {
+            'conversions': {'mile': 3, 'kilometer': 1.8642},
+            'plural': '+s',
+            'abbrs': 'lg'
+        },
+        'liter': {'conversions': {'pint': 2.1133}, 'plural': '+s', 'abbrs': 'l'},
+        'meter': {'conversions': {'yard': 1.094}, 'plural': '+s', 'abbrs': 'm'},
+        'meter^2': {'conversions': {'yard^2': 1.196}, 'plural': '+s', 'abbrs': 'm2'},
+        'meter^3': {'conversions': {'yard^3': 1.308}, 'plural': '+s', 'abbrs': 'm3'},
+        'mile': {'conversions': {'furlong': 8, 'nautical mile': 0.86897}, 'plural': '+s', 'abbrs': 'mi'},
+        'mile^2': {'conversions': {'acre': 640}, 'plural': '+s', 'abbrs': 'mi2'},
+        'milligram': {'plural': '+s', 'abbrs': 'mg'},
+        'milliliter': {'plural': '+s', 'abbrs': 'ml'},
+        'millimeter': {'plural': '+s', 'abbrs': 'mm'},
+        'millimeter^2': {'plural': '+s', 'abbrs': 'mm2'},
+        'miles/hour': {'conversions': {'kilometers/hour': 1.6093}, 'plural': null, 'abbrs': 'mph'},
+        'ounce': {'plural': '+s', 'abbrs': 'oz'},
+        'pint': {'conversions': {'fluid ounce': 16}, 'plural': '+s', 'abbrs': 'pt,pts'},
+        'pound': {'plural': '+s', 'abbrs': 'lb,lbs'},
+        'pound/in^2': {'plural': 'pounds/in^2', abbrs: 'psi'},
+        'quart': {'conversions': {'liter': 0.9463}, 'plural': '+s', 'abbrs': 'qt,qts'},
+        'rod': {'conversions': {'yard': 5.5}, 'plural': '+s', 'abbrs': null},
+        'stone': {'conversions': {'pound': 14, 'kilogram': 6.35}, 'plural': '+s', 'abbrs': 'st'},
+        'tablespoon': {
+            'conversions': {'milliliter': 15, 'teaspoon': 3},
+            'plural': '+s',
+            'abbrs': 'tb,tbl,tbs'
+        },
+        'teaspoon': {'conversions': {'milliliter': 5}, 'plural': '+s', 'abbrs': 'tsp,tsps'},
+        'yard': {'plural': '+s', 'abbrs': 'yd,yds'},
+        'yard^2': {'conversions': {'foot^2': 9}, 'plural': '+s', 'abbrs': 'yd2,yds2'},
+        'yard^3': {'plural': '+s', 'abbrs': 'yd3,yds3'}
+    };
+
+    const unitsOfMeasure = new UnitsOfMeasure(initialFormulas);
+
     return {
-        initialize: function(userOptions) {
-            var options = merge(DEFAULT_CONF, userOptions || {});
-            var convInputEl = document.querySelector(options.conversionInput);
+        initialize: function(conversionInput, userOptions) {
+            const options = {...DEFAULT_CONF, ...(userOptions || {})};
+            let convInputEl = document.querySelector(conversionInput);
             if(options.helpElement) {
-                buildHelp(options, unitsOfMeasure.units);    
+                buildHelp(options.helpElement, unitsOfMeasure, options);
             }
-            
 
             convInputEl.addEventListener('input', function(e) {
-                var ex = parseExpression(e.target.value);
-                var res = null;
-                if(ex && ex.label) {
-                    res = unitsOfMeasure.convert(ex.value, ex.label);
+                const value = e.target.value;
+                const expr = Parser.parse(value);
+                let result = null;
+                if(expr && expr.label) {
+                    result = unitsOfMeasure.convert(expr.value, expr.label);
                 };
-                options.conversionHandler.call(null, res, options);
+                options.handler(result, options);
             }, false);
-            
+
             if(convInputEl.value) {
                 convInputEl.dispatchEvent(new Event('input'));   
             }
         },
-        parseFraction: parseFraction,
-        parseExpression: parseExpression,
-        swapCaret: function(text) {
-            return text.toString().replace(/\^(\d)/, '&sup$1;');
-        },
-        unitsOfMeasure: unitsOfMeasure,
-        debugExpressions: function() {
-            console.table([
-                "1 gr butter",
-                // "12 F",
-                // "3 4/5 oz",
-                // "45 56/67",
-                // "1/2 m",
-                // "23/4",
-                // "-2/3",
-                // "+2/3"
-            ].map(function(i) { return parseExpression(i); }));
-        }
+        Parser: Parser,
+        unitsOfMeasure: unitsOfMeasure
     }
 }());

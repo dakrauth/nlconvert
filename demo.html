@@ -3,28 +3,68 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unit Conversions</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <style>
+        #help {
+            border: 1px solid #ddd;
+        }
+        main > section.row {
+            margin-bottom: 1em;
+        }
+        form + section { margin-top: 1em; }
+        ul.list-group {  width: 100%;  }
+        #help { max-height: 92vh; overflow-y: scroll; }
+    </style>
 </head>
 <body>
-<div class="container">
-    <h1>Unit Conversions</h1>
-    <form class="convert-form form-inline">
-        <p>
-            <label for="convert-input">Convert</label>
-            <input id="convert-input" class="form-control" type="text">
-        </p>
-    </form>
-    <div id="convert-results"></div>
-    <div id="convert-help"></div>
+    <main>
+        <div class="container">
+            <section class="row">
+                <h1>Unit Conversions</h1>
+            </section>
+            <section class="row">
+                <div class="col-3">
+                    <div class="position-static">
+                        <form class="convert-form form">
+                            <div class="form-group">
+                                <label for="convert-input">Convert:</label>
+                                <input id="convert-input" class="form-control" type="text">
+                            </div>
+                        </form>
+                        <section id="convert-results"></section>
+                    </div>
+                </div>
+                <div class="col-9">
+                    <section id="help" class="row"></section>
+                </div>
+            </section>
+        </div>
+    </main>
     <script src="nlconvert.js"></script>
     <script>
-        var inputEl = document.getElementById('convert-input');
-        inputEl.value = "22 1/20 lbs";
-        inputEl.focus();
-        Convert.initialize({'helpElement': '#convert-help'});
-        Convert.debugExpressions();
+        (function() {
+            const selector = '#convert-input';
+            let inputEl = document.querySelector(selector);
+            inputEl.value = "10 hect";
+            inputEl.focus();
+            // extend our table of measurements
+            Convert.unitsOfMeasure.addUnits({acre: {conversions: {'foobar^2': 42}}});
+            Convert.initialize(selector, {'helpElement': '#help'});
+            console.table([
+                "1 gr butter",
+                "12 F",
+                "3 4/5 oz",
+                "45 56/67",
+                "1/2 m",
+                "23/4",
+                "-2/3",
+                "+2/3"
+            ].map(i => {
+                val = Convert.Parser.parse(i);
+                return [i, val ? val.value + ', ' + val.label : null];
+            }));
+
+        })();
     </script>
-</div>
 </body>
 </html>
