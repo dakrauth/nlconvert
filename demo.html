@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unit Conversions</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/sandstone/bootstrap.min.css" crossorigin="anonymous">
     <style>
         #help {
             border: 1px solid #ddd;
@@ -23,7 +24,8 @@
                 <h1>Unit Conversions</h1>
             </section>
             <section class="row">
-                <div class="col-3">
+                <div class="col-4">
+                    <h2>Input</h2>
                     <div class="position-static">
                         <form class="convert-form form">
                             <div class="form-group">
@@ -34,37 +36,38 @@
                         <section id="convert-results"></section>
                     </div>
                 </div>
-                <div class="col-9">
+                <div class="col-8">
+                    <h2>Help</h2>
                     <section id="help" class="row"></section>
                 </div>
             </section>
         </div>
     </main>
-    <script src="nlconvert.js"></script>
-    <script>
-        (function() {
-            const selector = '#convert-input';
-            let inputEl = document.querySelector(selector);
-            inputEl.value = "10 hect";
-            inputEl.focus();
-            // extend our table of measurements
-            Convert.unitsOfMeasure.addUnits({acre: {conversions: {'foobar^2': 42}}});
-            Convert.initialize(selector, {'helpElement': '#help'});
-            console.table([
-                "1 gr butter",
-                "12 F",
-                "3 4/5 oz",
-                "45 56/67",
-                "1/2 m",
-                "23/4",
-                "-2/3",
-                "+2/3"
-            ].map(i => {
-                val = Convert.Parser.parse(i);
-                return [i, val ? val.value + ', ' + val.label : null];
-            }));
+    <script type="module">
+        import { nlConvert, unitsOfMeasure, parser } from "./nlconvert.js";
+        const selector = '#convert-input';
+        const inputEl = document.querySelector(selector);
+        inputEl.focus();
+        inputEl.value = "10 acre";
 
-        })();
+        // extend our table of measurements
+        unitsOfMeasure.addUnits({acre: {conversions: {'foobar^2': 42}}});
+        nlConvert(selector, '#convert-results', {'helpElement': '#help'});
+
+        console.log("Sample parsing:");
+        console.table([
+            "1 gr butter",
+            "12 F",
+            "3 4/5 oz",
+            "45 56/67",
+            "1/2 m",
+            "23/4",
+            "-2/3",
+            "+2/3"
+        ].map(i => {
+            const val = parser.parse(i);
+            return [i, val ? val.value + ', ' + val.label : null];
+        }));
     </script>
 </body>
 </html>
