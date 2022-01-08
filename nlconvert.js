@@ -1,7 +1,9 @@
 "use strict";
 
+// simple helper functions
 const swapCaret = text => text ? text.toString().replace(/\^(\d)/, '&sup$1;') : '';
 const isNumber = o => typeof o === 'number';
+const isString = o => typeof o ==='string';
 const multiplier = value => function(input) { return input * value; };
 const has = (obj, prop) => obj.hasOwnProperty(prop);
 
@@ -23,11 +25,6 @@ const pluralize = function(single, fmt) {
     return hasToken ? single + fmt.substr(1) + suffix: fmt;
 };
 
-const annotate = function(f, descr) {
-    f.description = descr;
-    return f;
-};
-
 const formatNumber = function(obj) {
     if(parseFloat(obj) === 0) {
         return '0';
@@ -39,9 +36,160 @@ const formatNumber = function(obj) {
     return bits[1] ? bits.join('.') : bits[0];
 };
 
+// tokens for simple recursive decent parser
+const tokenPatterns = [
+    // whitespace
+    ['ws', null, /^\s+/],
+
+    // floating point number
+    ['float', parseFloat, /^(\d+\.\d*|\.\d+)([eE][-+]?\d+)?|\d+[eE][-+]?\d+/],
+
+    // decimal integer
+    ['dec', parseInt, /^(0|[1-9]\d*)/],
+
+    // hex integer
+    ['hex', i => parseInt(i, 16), /^0[xX][\da-fA-F]*/],
+
+    // operator
+    ['op', s => s, /^(\(|\)|\+|-|\*\*|\*|\^|\/)/],
+
+    // identifier
+    ['id', s => s, /^[a-zA-Z][a-zA-Z_]+/]
+];
+
+export function tokenScanner(code) {
+    let tokens = [];
+    while(code) {
+        let found = false;
+        for(const [name, f, regex] of tokenPatterns) {
+            const m = code.match(regex);
+            if(m) {
+                // console.table([{matchName: name, matchValue: m[0], length: m[0].length, code: code}]);
+                if(m.length === 0) {
+                    throw "unexpected non-token";
+                }
+                if(f) {
+                    tokens.push({value: f(m[0]), name: name});
+                }
+                found = true;
+                code = code.substr(m[0].length); 
+                break;
+            }
+        }
+        if(!found) {
+            throw `Bad expression at ${code}`
+        }
+    }
+    return tokens;
+}
+
+// very simple math expression interpreter
+export class Interpreter {
+    constructor(namespace, functions) {
+        this.namespace = {pi: Math.pi, e: Math.e, ...(namespace || {})};
+        this.function = {
+            sqrt: Math.sqrt,
+            ...(functions || {})
+        };
+    }
+    factor(source) {
+        let tok = source.shift();
+        if(tok.value === '-') {
+            return -this.factor(source);
+        }
+        if(tok.name === 'dec' || tok.name === 'hex' || tok.name === 'float') {
+            return tok.value;
+        }
+        if(this.function[tok.value]) {
+            const func = this.function[tok.value];
+            return func(this.expression(source));
+        }
+        if(tok.value === '(') {
+            let o = this.expression(source);
+            tok = source.shift();
+            if(tok.value !== ')') {
+                throw "missing close paren token";
+            }
+            return o;
+        }
+        if(tok.value in this.namespace) {
+            return this.namespace[tok.value];
+        }
+
+        throw `Invalid token ${tok.value}, ${tok.name}`;
+    }
+    exponential(source) {
+        const o = this.factor(source);
+        if(!source.length) {
+            return o;
+        }
+
+        const tok = source.shift()
+        if(tok.value === '**' || tok.value === '^') { 
+            return o ** this.exponential(source);
+        }
+
+        source.unshift(tok);
+        return o;
+    }
+    multiplicative(source) {
+        const o = this.exponential(source);
+        if(!source.length) {
+            return o;
+        }
+
+        const tok = source.shift();
+        if(tok.value === '*') { 
+            return o * this.multiplicative(source);
+        }
+        if(tok.value === '/') { 
+            return o / this.multiplicative(source);
+        }
+        if(tok.value === '%') { 
+            return o % this.multiplicative(source);
+        }
+
+        source.unshift(tok);
+        return o;
+    }
+    expression(source) {
+        const o = this.multiplicative(source);
+        if(!source.length) {
+            return o;
+        }
+
+        const tok = source.shift();
+        if(tok.value === '+') {
+            return o + this.expression(source);
+        }
+        if(tok.value === '-') {
+            return o - this.expression(source);
+        }
+
+        source.unshift(tok);
+        return o;
+    }
+    evaluate(code) {
+        if(isString(code)) {
+            code = tokenScanner(code);
+        }
+        return this.expression(code);
+    }
+    getRunner(code) {
+        if(isString(code)) {
+            code = tokenScanner(code);
+        }
+        return value => {
+            let codeCopy = [...code];
+            this.namespace['value'] = value;
+            return this.expression(codeCopy);
+        }
+    }
+}
+
 let unitId = 0;
 
-class Unit { 
+export class Unit { 
     constructor(name, plural, abbrs, precision=4) {
         this.id = 'u' + unitId++;
         this.abbrs = abbrs ? abbrs.split(',') : [];
@@ -71,7 +219,15 @@ class Result {
 class Converter {
     constructor(fromUnit, toUnit, value) {
         this.value = value
-        this.func = isNumber(value) ? multiplier(value) : value;
+        if(isNumber(value)) {
+            this.func = multiplier(value); 
+        }
+        else if(isString(value)) {
+            this.func = new Interpreter().getRunner(value);
+        }
+        else {
+            this.func = value;
+        }
         this.toUnit = toUnit;
         this.fromUnit = fromUnit;
     }
@@ -86,6 +242,9 @@ class Converter {
         if(isNumber(value)) {
             value = (value < 0.0001) ? value.toFixed(6) : value.toFixed(value >= 1 ? 3 : 4);
             return value.replace(/[.]0+$/, '');
+        }
+        if(isString(value)) {
+            return value;
         }
         if(typeof value === 'function' && value.description) {
             return value.description;
@@ -103,44 +262,47 @@ class UnitsOfMeasure {
         this.addUnits(units);
     }
     addUnits(units) {
-        let conversion_queue = [];
+        let pendingConversions = [];
         for(const [key, attrs] of Object.entries(units)) {
-            let unit = this._addUnit(key, attrs.plural, attrs.abbrs);
+            let unit = this.addUnit(key, attrs.plural, attrs.abbrs);
             if(attrs.conversions) {
                 unit.conversions = attrs.conversions;
-                conversion_queue.push({fromUnit: unit, conversions: attrs.conversions});
+                pendingConversions.push([unit, attrs.conversions]);
             }
         }
-        for(const pending of conversion_queue) {
-            for(const [name, value] of Object.entries(pending.conversions)) {
-                let toUnit = this.unit(name);
-                if(!toUnit) {
-                    toUnit = this._addUnit(name, name);
-                }
-                this._addConverter(pending.fromUnit, toUnit, value)
+        for(const [fromUnit, conversions] of pendingConversions) {
+            for(const [toUnitName, conversionValue] of Object.entries(conversions)) {
+                this.addConverter(fromUnit, toUnitName, conversionValue)
             }
         }
     }
-    _getOrCreateConversions(name) {
+    getOrCreateConversions(name) {
         if(!has(this.unitConversions, name)) {
             this.unitConversions[name] = {};
         }
         return this.unitConversions[name];
     }
-    _addConverter(fromUnit, toUnit, value) {
-        if(0 && (fromUnit.name == 'acre' || fromUnit.name == 'hectare')) {
-            debugger;
+    addConverter(fromUnit, toUnit, value) {
+        if(isString(fromUnit)) {
+            fromUnit = this.unit(fromUnit);
+        }
+        if(isString(toUnit)) {
+            const toUnitName = toUnit;
+            toUnit = this.unit(toUnit);
+            if(!toUnit) {
+                toUnit = this.addUnit(toUnitName, toUnitName);
+            }
         }
         const converter = new Converter(fromUnit, toUnit, value);
-        this._getOrCreateConversions(fromUnit.name)[toUnit.name] = converter;
+        this.getOrCreateConversions(fromUnit.name)[toUnit.name] = converter;
         if(!has(toUnit.conversions, fromUnit.name) && isNumber(value)) {
-            this._getOrCreateConversions(toUnit.name)[fromUnit.name] = converter.invert();
+            this.getOrCreateConversions(toUnit.name)[fromUnit.name] = converter.invert();
         }
     }
-    _addUnit(unitName, plural, abbrs) {
-        let unit = this._set(unitName, new Unit(unitName, plural, abbrs));
+    addUnit(unitName, plural, abbrs) {
+        let unit = this.set(unitName, new Unit(unitName, plural, abbrs));
         for(const abbr of unit.abbrs) {
-            this._set(abbr, unit);
+            this.set(abbr, unit);
         }
         return unit;
     }
@@ -165,7 +327,7 @@ class UnitsOfMeasure {
         }
         return null;
     }
-    _set(label, unit) {
+    set(label, unit) {
         if(has(this.units, label)) {
             console.warn('Unit label already exists: ', label);
         }
@@ -180,19 +342,23 @@ class UnitsOfMeasure {
             const unit = this.unit(key);
             const converters = this.conversions(key);
             for(const conv of Object.values(converters)) {
-                matrix.push({
-                    name: swapCaret(unit.name),
-                    abbrs: unit.abbrs ? unit.abbrs.join(", ") : "",
-                    toUnit: swapCaret(conv.toUnit.name),
-                    value: conv.valueRepr()
-                });
+                try {
+                    matrix.push({
+                        name: swapCaret(unit.name),
+                        abbrs: unit.abbrs ? unit.abbrs.join(", ") : "",
+                        toUnit: swapCaret(conv.toUnit.name),
+                        value: conv.valueRepr()
+                    });
+                } catch(e) {
+                    console.error(e);
+                }
             }
         }
         return matrix;
     }
 }
 
-export const parser = {
+export const nlParser = {
     numRe: /^([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]([-+]?\d+))?)/,
     fracRe: /^([-+])?(?:(\d+) +)?(\d+)\/([1-9]\d*)/,
     expression: function(value, label, text) {
@@ -205,7 +371,7 @@ export const parser = {
     parseFraction: function(text, match) {
         let value = 0;
         if(!match) {
-            match = parser.fracRe.exec(text);
+            match = nlParser.fracRe.exec(text);
             if(!match) {
                 console.log('parseFraction fail:', text)
             }
@@ -215,7 +381,7 @@ export const parser = {
         }
         value += parseInt(match[3]) / parseInt(match[4]);
         let label = text.substr(match[0].length).trim();
-        return parser.expression(
+        return nlParser.expression(
             match[1] === '-' ? -value : value,
             label || 'fraction',
             text
@@ -224,24 +390,24 @@ export const parser = {
     parse: function(text) {
         let label = '';
         let value = false;
-        let match = parser.fracRe.exec(text);
+        let match = nlParser.fracRe.exec(text);
             
         if(match) {
-            return parser.parseFraction(text, match)
+            return nlParser.parseFraction(text, match)
         }
 
-        match = parser.numRe.exec(text);
+        match = nlParser.numRe.exec(text);
         if(match) {
             value = parseFloat(match[0]);
         }
         else {
-            console.log('parser.parse fail:', text);
+            console.log('nlParser.parse fail:', text);
         }
 
         if(match) {
             label = text.substr(match[0].length).trim().toLowerCase() || 'number';
         }
-        return value ? parser.expression(value, label, text) : null;
+        return value ? nlParser.expression(value, label, text) : null;
     }
 };
 
@@ -301,7 +467,6 @@ const buildHelp = function(parent, units, opts) {
     removeChildren(document.querySelector(parent)).appendChild(table);
 };
 
-
 const initialFormulas = {
     'acre': {
         'conversions': {'hectare': 0.4047, 'meter^2': 4046.86, 'yard^2': 4840},
@@ -313,7 +478,7 @@ const initialFormulas = {
     'barrel': {'conversions': {'meter^3': 0.159}, 'plural': '+s', 'abbrs': null},
     'bushel': {'conversions': {'liter': 36.4}, 'plural': '+s', 'abbrs': 'bush'},
     'celsius': {
-        'conversions': {'fahrenheit': annotate(c => c * 9/5 + 32, 'C * 9 / 5 + 32')},
+        'conversions': {'fahrenheit': 'value * 9/5 + 32'},
         'plural': null,
         'abbrs': 'c'
     },
@@ -328,7 +493,7 @@ const initialFormulas = {
     },
     'exp': {'plural': null, 'abbrs': null},
     'fahrenheit': {
-        'conversions': {'celsius': annotate(f => (f  - 32) * 5/9, '(F - 32) * 5 / 9')},
+        'conversions': {'celsius': '(value - 32) * 5/9'},
         'plural': null,
         'abbrs': 'f'
     },
@@ -359,14 +524,6 @@ const initialFormulas = {
         'conversions': {'pint': 0.0347, 'centiliter': 1.639},
         'plural': '+es',
         'abbrs': 'in3'
-    },
-    'int': {
-        'conversions': [
-            ['hex', annotate(i => '0x' + i.toString(16), 'HEX')],
-            ['exp', annotate(i => i.toExponential(), 'EXP')]
-        ],
-        'plural': null,
-        'abbrs': null
     },
     'beer keg': {'conversions': {'cases': 6.8889, 'gallon': 15.5, 'beers': 165.333}, 'plural': '+s', 'abbrs': null},
     'kilogram': {'conversions': {'pound': 2.205}, 'plural': '+s', 'abbrs': 'kg'},
@@ -419,7 +576,6 @@ export const DEFAULT_CONF = {
 
     resultsGroupClass: 'list-group',
     resultsItemClass: 'list-group-item',
-    resultsContainer: '#convert-results',
 
     helpElement: false,
     helpTableClass: 'table table-striped'
@@ -432,14 +588,17 @@ export const nlConvert = function(conversionInput, resultsElement, userOptions) 
         buildHelp(options.helpElement, unitsOfMeasure, options);
     }
 
+    resultsElement = isString(resultsElement)
+                   ? document.querySelector(resultsElement)
+                   : resultsElement;
+
     convInputEl.addEventListener('input', function(e) {
         const value = e.target.value;
-        const expr = parser.parse(value);
+        const expr = nlParser.parse(value);
         let result = null;
         if(expr && expr.label) {
             result = unitsOfMeasure.convert(expr.value, expr.label);
         };
-        resultsElement = document.querySelector(resultsElement);
         options.handler(resultsElement, result, options);
     }, false);
 

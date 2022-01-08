@@ -29,8 +29,15 @@
                     <div class="position-static">
                         <form class="convert-form form">
                             <div class="form-group">
-                                <label for="convert-input">Convert:</label>
-                                <input id="convert-input" class="form-control" type="text">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">Convert:</span>
+                                    <input id="convert-input" class="form-control" type="text">
+                                </div>
+                                <div class="input-group mb-3">
+                                    <input id="parse" value="sqrt(3)" type="text" class="form-control" placeholder="parse">
+                                    <button class="btn btn-secondary" type="button" id="do-parse">Parse</button>
+                                    <span id="parse-result" style="width:5em" class="input-group-text"></span>
+                                </div>
                             </div>
                         </form>
                         <section id="convert-results"></section>
@@ -44,14 +51,42 @@
         </div>
     </main>
     <script type="module">
-        import { nlConvert, unitsOfMeasure, parser } from "./nlconvert.js";
+        import {
+            nlConvert,
+            unitsOfMeasure,
+            Unit,
+            nlParser,
+            tokenScanner, Interpreter
+        } from "./nlconvert.js";
         const selector = '#convert-input';
         const inputEl = document.querySelector(selector);
         inputEl.focus();
-        inputEl.value = "10 acre";
+        inputEl.value = "50 f";
+
+        const interpreter = new Interpreter({val: 50});
+        document.querySelector('#do-parse').addEventListener('click', e => {
+            const input = document.querySelector('#parse').value;
+            if(input) {
+                const tokens = tokenScanner(input);
+                console.log(tokens);
+                if(tokens) {
+                    let result = interpreter.evaluate(tokens);
+                    console.log(result);
+                    if(Math.floor(result) !== result) {
+                        result = result.toPrecision(6)
+                    }
+                    else {
+                        result = result.toString();
+                    }
+                    document.querySelector('#parse-result').textContent = result;
+                }
+            }
+        });
 
         // extend our table of measurements
-        unitsOfMeasure.addUnits({acre: {conversions: {'foobar^2': 42}}});
+        const fooUnit = unitsOfMeasure.addUnit('foobar^2', 's', 'foo')
+        unitsOfMeasure.addConverter('acre', fooUnit, 42);
+
         nlConvert(selector, '#convert-results', {'helpElement': '#help'});
 
         console.log("Sample parsing:");
@@ -65,7 +100,7 @@
             "-2/3",
             "+2/3"
         ].map(i => {
-            const val = parser.parse(i);
+            const val = nlParser.parse(i);
             return [i, val ? val.value + ', ' + val.label : null];
         }));
     </script>
