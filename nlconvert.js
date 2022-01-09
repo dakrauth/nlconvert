@@ -468,105 +468,105 @@ const buildHelp = function(parent, units, opts) {
 };
 
 const initialFormulas = {
-    'acre': {
-        'conversions': {'hectare': 0.4047, 'meter^2': 4046.86, 'yard^2': 4840},
-        'plural': '+s',
-        'abbrs': null
+    "acre": {
+        "conversions": {"hectare": 0.4047, "meter^2": 4046.86, "yard^2": 4840},
+        "plural": "+s",
+        "abbrs": null
     },
-    'atmosphere': {'conversions': {'pounds/in^2': 14.696}, 'plural': '+s', 'abbrs': 'atm'},
-    'bar': {'conversions': {'atmosphere': 0.98692, 'pounds/in^2': 14.5038}, 'plural': '+s', 'abbrs': null},
-    'barrel': {'conversions': {'meter^3': 0.159}, 'plural': '+s', 'abbrs': null},
-    'bushel': {'conversions': {'liter': 36.4}, 'plural': '+s', 'abbrs': 'bush'},
-    'celsius': {
-        'conversions': {'fahrenheit': 'value * 9/5 + 32'},
-        'plural': null,
-        'abbrs': 'c'
+    "atmosphere": {"conversions": {"pounds/in^2": 14.696}, "plural": "+s", "abbrs": "atm"},
+    "bar": {"conversions": {"atmosphere": 0.98692, "pounds/in^2": 14.5038}, "plural": "+s", "abbrs": null},
+    "barrel": {"conversions": {"meter^3": 0.159}, "plural": "+s", "abbrs": null},
+    "bushel": {"conversions": {"liter": 36.4}, "plural": "+s", "abbrs": "bush"},
+    "celsius": {
+        "conversions": {"fahrenheit": "value * 9/5 + 32"},
+        "plural": null,
+        "abbrs": "c"
     },
-    'centiliter': {'conversions': {'pint': 0.0211}, 'plural': '+s', 'abbrs': 'cl'},
-    'centimeter': {'conversions': {'inch': 0.3937}, 'plural': '+s', 'abbrs': 'cm'},
-    'centimeter^2': {'conversions': {'inch^2': 0.155}, 'plural': '+s', 'abbrs': 'cm2'},
-    'centimeter^3': {'conversions': {'inch^3': 0.06102}, 'plural': '+s', 'abbrs': 'cm3'},
-    'cup': {
-        'conversions': {'milliliter': 240, 'ounce': 8, 'tablespoon': 16},
-        'plural': '+s',
-        'abbrs': null
+    "centiliter": {"conversions": {"pint": 0.0211}, "plural": "+s", "abbrs": "cl"},
+    "centimeter": {"conversions": {"inch": 0.3937}, "plural": "+s", "abbrs": "cm"},
+    "centimeter^2": {"conversions": {"inch^2": 0.155}, "plural": "+s", "abbrs": "cm2"},
+    "centimeter^3": {"conversions": {"inch^3": 0.06102}, "plural": "+s", "abbrs": "cm3"},
+    "cup": {
+        "conversions": {"milliliter": 240, "ounce": 8, "tablespoon": 16},
+        "plural": "+s",
+        "abbrs": null
     },
-    'exp': {'plural': null, 'abbrs': null},
-    'fahrenheit': {
-        'conversions': {'celsius': '(value - 32) * 5/9'},
-        'plural': null,
-        'abbrs': 'f'
+    "exp": {"plural": null, "abbrs": null},
+    "fahrenheit": {
+        "conversions": {"celsius": "(value - 32) * 5/9"},
+        "plural": null,
+        "abbrs": "f"
     },
-    'fathom': {conversions: {'feet': 6, 'meter': 1.8288}, 'plural': '+s', 'abbrs': null},
-    'fluid ounce': {
-        'conversions': {'inch^3': 1.878, 'liter': 0.0296, 'tablespoon': 2},
-        'plural': '+s',
-        'abbrs': 'floz,fl oz'
+    "fathom": {"conversions": {"feet": 6, "meter": 1.8288}, "plural": "+s", "abbrs": null},
+    "fluid ounce": {
+        "conversions": {"inch^3": 1.878, "liter": 0.0296, "tablespoon": 2},
+        "plural": "+s",
+        "abbrs": "floz,fl oz"
     },
-    'foot': {'conversions': {'meter': 0.3048}, 'plural': 'feet', 'abbrs': 'ft'},
-    'foot^2': {
-        'conversions': {'inch^2': 144, 'meter^2': 0.0929},
-        'plural': 'feet^2',
-        'abbrs': 'ft2'},
-    'foot^3': {
-        'conversions': {'inch^3': 1728, 'meter^3': 0.02832},
-        'plural': 'feet^3',
-        'abbrs': 'ft3'
+    "foot": {"conversions": {"meter": 0.3048}, "plural": "feet", "abbrs": "ft"},
+    "foot^2": {
+        "conversions": {"inch^2": 144, "meter^2": 0.0929},
+        "plural": "feet^2",
+        "abbrs": "ft2"},
+    "foot^3": {
+        "conversions": {"inch^3": 1728, "meter^3": 0.02832},
+        "plural": "feet^3",
+        "abbrs": "ft3"
     },
-    'furlong': {'plural': '+s', 'abbrs': null},
-    'gallon': {'conversions': {'liter': 3.785}, 'plural': '+s', 'abbrs': 'gal'},
-    'gram': {'conversions': {'ounce': 0.03527}, 'plural': '+s', 'abbrs': 'g'},
-    'hectare': {'conversions': {'mile^2': 0.003861, 'kilometer^2': 0.01}, 'plural': '+s', 'abbrs': 'hect'},
-    'hex': {'plural': null, 'abbrs': null},
-    'inch': {'conversions': {'millimeter': 25.4}, 'plural': '+es', 'abbrs': 'in'},
-    'inch^2': {'conversions': {'millimeter^2': 645.16}, 'plural': '+es', 'abbrs': 'in2'},
-    'inch^3': {
-        'conversions': {'pint': 0.0347, 'centiliter': 1.639},
-        'plural': '+es',
-        'abbrs': 'in3'
+    "furlong": {"plural": "+s", "abbrs": null},
+    "gallon": {"conversions": {"liter": 3.785}, "plural": "+s", "abbrs": "gal"},
+    "gram": {"conversions": {"ounce": 0.03527}, "plural": "+s", "abbrs": "g"},
+    "hectare": {"conversions": {"mile^2": 0.003861, "kilometer^2": 0.01}, "plural": "+s", "abbrs": "hect"},
+    "hex": {"plural": null, "abbrs": null},
+    "inch": {"conversions": {"millimeter": 25.4}, "plural": "+es", "abbrs": "in"},
+    "inch^2": {"conversions": {"millimeter^2": 645.16}, "plural": "+es", "abbrs": "in2"},
+    "inch^3": {
+        "conversions": {"pint": 0.0347, "centiliter": 1.639},
+        "plural": "+es",
+        "abbrs": "in3"
     },
-    'beer keg': {'conversions': {'cases': 6.8889, 'gallon': 15.5, 'beers': 165.333}, 'plural': '+s', 'abbrs': null},
-    'kilogram': {'conversions': {'pound': 2.205}, 'plural': '+s', 'abbrs': 'kg'},
-    'kilometer': {'conversions': {'mile': 0.6214}, 'plural': '+s', 'abbrs': 'k,km'},
-    'kilometer^2': {
-        'conversions': {'mile^2': 0.3861},
-        'plural': '+s',
-        'abbrs': 'km2'
+    "beer keg": {"conversions": {"cases": 6.8889, "gallon": 15.5, "beers": 165.333}, "plural": "+s", "abbrs": null},
+    "kilogram": {"conversions": {"pound": 2.205}, "plural": "+s", "abbrs": "kg"},
+    "kilometer": {"conversions": {"mile": 0.6214}, "plural": "+s", "abbrs": "k,km"},
+    "kilometer^2": {
+        "conversions": {"mile^2": 0.3861},
+        "plural": "+s",
+        "abbrs": "km2"
     },
-    'kilometers/hour': {'conversions': {}, 'plural': null, 'abbrs': 'kph'},
-    'knot': {'conversions': {'mph': 1.151, 'kph': 1.852}, 'plural': '+s', 'abbrs': 'kn'},
-    'league': {
-        'conversions': {'mile': 3, 'kilometer': 1.8642},
-        'plural': '+s',
-        'abbrs': 'lg'
+    "kilometers/hour": {"conversions": {}, "plural": null, "abbrs": "kph"},
+    "knot": {"conversions": {"mph": 1.151, "kph": 1.852}, "plural": "+s", "abbrs": "kn"},
+    "league": {
+        "conversions": {"mile": 3, "kilometer": 1.8642},
+        "plural": "+s",
+        "abbrs": "lg"
     },
-    'liter': {'conversions': {'pint': 2.1133}, 'plural': '+s', 'abbrs': 'l'},
-    'meter': {'conversions': {'yard': 1.094}, 'plural': '+s', 'abbrs': 'm'},
-    'meter^2': {'conversions': {'yard^2': 1.196}, 'plural': '+s', 'abbrs': 'm2'},
-    'meter^3': {'conversions': {'yard^3': 1.308}, 'plural': '+s', 'abbrs': 'm3'},
-    'mile': {'conversions': {'furlong': 8, 'nautical mile': 0.86897}, 'plural': '+s', 'abbrs': 'mi'},
-    'mile^2': {'conversions': {'acre': 640}, 'plural': '+s', 'abbrs': 'mi2'},
-    'milligram': {'plural': '+s', 'abbrs': 'mg'},
-    'milliliter': {'plural': '+s', 'abbrs': 'ml'},
-    'millimeter': {'plural': '+s', 'abbrs': 'mm'},
-    'millimeter^2': {'plural': '+s', 'abbrs': 'mm2'},
-    'miles/hour': {'conversions': {'kilometers/hour': 1.6093}, 'plural': null, 'abbrs': 'mph'},
-    'ounce': {'plural': '+s', 'abbrs': 'oz'},
-    'pint': {'conversions': {'fluid ounce': 16}, 'plural': '+s', 'abbrs': 'pt,pts'},
-    'pound': {'plural': '+s', 'abbrs': 'lb,lbs'},
-    'pound/in^2': {'plural': 'pounds/in^2', abbrs: 'psi'},
-    'quart': {'conversions': {'liter': 0.9463}, 'plural': '+s', 'abbrs': 'qt,qts'},
-    'rod': {'conversions': {'yard': 5.5}, 'plural': '+s', 'abbrs': null},
-    'stone': {'conversions': {'pound': 14, 'kilogram': 6.35}, 'plural': '+s', 'abbrs': 'st'},
-    'tablespoon': {
-        'conversions': {'milliliter': 15, 'teaspoon': 3},
-        'plural': '+s',
-        'abbrs': 'tb,tbl,tbs'
+    "liter": {"conversions": {"pint": 2.1133}, "plural": "+s", "abbrs": "l"},
+    "meter": {"conversions": {"yard": 1.094}, "plural": "+s", "abbrs": "m"},
+    "meter^2": {"conversions": {"yard^2": 1.196}, "plural": "+s", "abbrs": "m2"},
+    "meter^3": {"conversions": {"yard^3": 1.308}, "plural": "+s", "abbrs": "m3"},
+    "mile": {"conversions": {"furlong": 8, "nautical mile": 0.86897}, "plural": "+s", "abbrs": "mi"},
+    "mile^2": {"conversions": {"acre": 640}, "plural": "+s", "abbrs": "mi2"},
+    "milligram": {"plural": "+s", "abbrs": "mg"},
+    "milliliter": {"plural": "+s", "abbrs": "ml"},
+    "millimeter": {"plural": "+s", "abbrs": "mm"},
+    "millimeter^2": {"plural": "+s", "abbrs": "mm2"},
+    "miles/hour": {"conversions": {"kilometers/hour": 1.6093}, "plural": null, "abbrs": "mph"},
+    "ounce": {"plural": "+s", "abbrs": "oz"},
+    "pint": {"conversions": {"fluid ounce": 16}, "plural": "+s", "abbrs": "pt,pts"},
+    "pound": {"plural": "+s", "abbrs": "lb,lbs"},
+    "pound/in^2": {"plural": "pounds/in^2", "abbrs": "psi"},
+    "quart": {"conversions": {"liter": 0.9463}, "plural": "+s", "abbrs": "qt,qts"},
+    "rod": {"conversions": {"yard": 5.5}, "plural": "+s", "abbrs": null},
+    "stone": {"conversions": {"pound": 14, "kilogram": 6.35}, "plural": "+s", "abbrs": "st"},
+    "tablespoon": {
+        "conversions": {"milliliter": 15, "teaspoon": 3},
+        "plural": "+s",
+        "abbrs": "tb,tbl,tbs"
     },
-    'teaspoon': {'conversions': {'milliliter': 5}, 'plural': '+s', 'abbrs': 'tsp,tsps'},
-    'yard': {'plural': '+s', 'abbrs': 'yd,yds'},
-    'yard^2': {'conversions': {'foot^2': 9}, 'plural': '+s', 'abbrs': 'yd2,yds2'},
-    'yard^3': {'plural': '+s', 'abbrs': 'yd3,yds3'}
+    "teaspoon": {"conversions": {"milliliter": 5}, "plural": "+s", "abbrs": "tsp,tsps"},
+    "yard": {"plural": "+s", "abbrs": "yd,yds"},
+    "yard^2": {"conversions": {"foot^2": 9}, "plural": "+s", "abbrs": "yd2,yds2"},
+    "yard^3": {"plural": "+s", "abbrs": "yd3,yds3"}
 };
 
 export const unitsOfMeasure = new UnitsOfMeasure(initialFormulas);
